@@ -1,5 +1,22 @@
+"""
+This file is part of pySpec
+    Copyright (C) 2024  Markus Bauer
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    pySpec is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""
+
 from abc import ABC, abstractmethod
-from copy import copy
 
 import numpy as np
 
@@ -40,7 +57,7 @@ class AbstractData(ABC):
         return self._array.size
 
     @property
-    def shape(self):
+    def shape(self) -> tuple(int):
         """The shape of the data array."""
         return np.shape(self._array)
 
@@ -91,7 +108,11 @@ class AbstractData(ABC):
     def __neg__(self):
         return self.__class__(- self._array, self._unit)
 
-    def _reshape_other(self, other):
+    def _reshape_other(self, other: np.ndarray) -> np.ndarray:
+        """
+        :param other: Array to reshape.
+        :return: Reshaped 'other'-array to fit the internal data array in its dimensionality.
+        """
         if len(np.shape(other)) > 0 and np.shape(other) != np.shape(self._array):
             if np.shape(other)[::-1] == np.shape(self._array):
                 other = np.transpose(other)
