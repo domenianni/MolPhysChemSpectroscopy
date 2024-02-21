@@ -198,3 +198,7 @@ class AbstractSpectrum(ABC):
     @abstractmethod
     def from_file(path, parser_args: dict):
         pass
+
+
+if __name__ == '__main__':
+    pass

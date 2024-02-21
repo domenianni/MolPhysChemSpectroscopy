@@ -52,3 +52,7 @@ class OneDimensionalData(AbstractData):
 
     def truncate_to(self, region=None):
         pass
+
+
+if __name__ == '__main__':
+    pass

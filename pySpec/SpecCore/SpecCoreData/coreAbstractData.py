@@ -149,3 +149,7 @@ class AbstractData(ABC):
     def truncate_to(self, region=None):
         """Subclasses need to implement a function to truncate the data."""
         pass
+
+
+if __name__ == '__main__':
+    pass

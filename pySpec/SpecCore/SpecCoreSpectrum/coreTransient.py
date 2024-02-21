@@ -163,3 +163,6 @@ class Transient(AbstractSpectrum):
             args.update(parser_args)
 
         return Parser(path,  import_type='transient', interface='new', **args)[0]
+
+if __name__ == '__main__':
+    pass
