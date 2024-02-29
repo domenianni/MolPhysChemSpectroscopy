@@ -1,0 +1,63 @@
+//
+// Created by Marku_000 on 12.02.2023.
+//
+
+#include "inputParser.h"
+
+bool inputParser::parse_opt_params(const std::string& arg){
+    static bool block_arg{false};
+
+    if (m_files.empty()) {
+        if (arg == "-h"){
+            std::cout << "The call signature is:\n";
+            std::cout << "<arguments> <file paths>\n";
+            std::cout << "With the possible arguments:\n";
+            std::cout << "-s / --sorted : If the input data has a sorted wavenumber axis.\n";
+            std::cout << "-b <int> / --blocks <int> to specify the amount of blocks in the files.\n";
+            exit(0);
+        }
+
+        if (arg == "-s" || arg == "--sorted") {
+            if (m_sorted_input) {
+                throw std::runtime_error("cannot use -s/--sorted param twice!");
+            }
+
+            m_sorted_input = true;
+            return true;
+        }
+
+        if (arg == "-b" || arg == "--blocks") {
+            block_arg = true;
+            return true;
+        }
+
+        if (block_arg) {
+            m_block_amount = std::stoi(arg);
+            block_arg = false;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool inputParser::get_next_path(std::filesystem::path& path){
+    static int i{0};
+
+    if (i >= m_files.size()){
+        return false;
+    }
+
+    path = m_files[i];
+    i++;
+
+    return true;
+}
+
+[[nodiscard]] int inputParser::get_block_amount() const  {
+    return m_block_amount;
+}
+
+[[nodiscard]] bool inputParser::isSorted() const{
+    return m_sorted_input;
+}
