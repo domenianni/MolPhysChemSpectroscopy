@@ -57,7 +57,7 @@ class AbstractData(ABC):
         return self._array.size
 
     @property
-    def shape(self) -> tuple(int):
+    def shape(self) -> tuple[int]:
         """The shape of the data array."""
         return np.shape(self._array)
 
