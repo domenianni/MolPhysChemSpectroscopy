@@ -16,12 +16,12 @@ This file is part of pySpec
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from Spectroscopy.SpecImport.importBase import ImportTimeResolvedBase
+from .importBase import ImportTimeResolvedBase
 
-from Spectroscopy.SpecCore.SpecCoreSpectrum.coreTransientSpectrum import TransientSpectrum
-from Spectroscopy.SpecCore.coreParser import Parser
+from ..SpecCore.SpecCoreSpectrum.coreTransientSpectrum import TransientSpectrum
+from ..SpecCore.coreParser import Parser
 
-from Spectroscopy.pyStitchCorr import stitchCorr
+from ..pyStitchCorr import stitchCorr
 
 import os
 import numpy as np

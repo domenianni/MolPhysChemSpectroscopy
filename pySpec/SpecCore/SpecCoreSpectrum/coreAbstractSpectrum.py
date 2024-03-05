@@ -22,8 +22,8 @@ from copy import deepcopy
 from scipy.integrate import trapezoid
 from scipy.signal import convolve
 
-from Spectroscopy.SpecCore.SpecCoreData.coreAbstractData import AbstractData
-from Spectroscopy.SpecCore.coreLineShapes import gaussian
+from ..SpecCoreData.coreAbstractData import AbstractData
+from ..coreLineShapes import gaussian
 
 
 class AbstractSpectrum(ABC):
