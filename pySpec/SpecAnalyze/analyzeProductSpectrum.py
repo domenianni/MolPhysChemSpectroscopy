@@ -16,9 +16,9 @@ This file is part of pySpec
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from Spectroscopy.SpecCore.SpecCoreSpectrum.coreTransientSpectrum import TransientSpectrum
-from Spectroscopy.SpecCore.SpecCoreSpectrum.coreSpectrum import Spectrum
-from Spectroscopy.SpecCore.coreLineShapes import  gaussian
+from ..SpecCore.SpecCoreSpectrum.coreTransientSpectrum import TransientSpectrum
+from ..SpecCore.SpecCoreSpectrum.coreSpectrum import Spectrum
+from ..SpecCore.coreLineShapes import  gaussian
 
 from copy import deepcopy
 import numpy as np

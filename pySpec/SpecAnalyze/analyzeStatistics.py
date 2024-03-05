@@ -21,7 +21,7 @@ import scipy.stats as sp
 from copy import deepcopy
 import matplotlib.pyplot as plt
 
-from Spectroscopy.SpecCore.SpecCoreSpectrum.coreTransientSpectrum import TransientSpectrum
+from ..SpecCore.SpecCoreSpectrum.coreTransientSpectrum import TransientSpectrum
 
 
 class StatisticalAnalysisMeasurements:
