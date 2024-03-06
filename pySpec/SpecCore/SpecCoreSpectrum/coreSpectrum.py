@@ -217,7 +217,7 @@ class Spectrum(AbstractSpectrum):
 
     @staticmethod
     def from_file(path, parser_args: dict = None):
-        from Spectroscopy.SpecCore.coreParser import Parser
+        from ..coreParser import Parser
 
         path = Parser.parse_path(path)[0]
 
@@ -230,7 +230,7 @@ class Spectrum(AbstractSpectrum):
 
     @classmethod
     def average_from_files(cls, path, parser_args: dict = None):
-        from Spectroscopy.SpecCore.coreParser import Parser
+        from ..coreParser import Parser
 
         args = {'x_unit': 'wn', 'data_unit': 'od'}
 
@@ -244,7 +244,7 @@ class Spectrum(AbstractSpectrum):
 
     @classmethod
     def calculate_from_files(cls, path, solvent_path, parser_args: dict = None):
-        from Spectroscopy.SpecCore.coreParser import Parser
+        from ..coreParser import Parser
 
         args = {'x_unit': 'wn', 'data_unit': 'od'}
 
