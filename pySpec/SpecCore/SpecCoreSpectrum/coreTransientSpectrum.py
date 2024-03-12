@@ -308,7 +308,7 @@ class TransientSpectrum(AbstractSpectrum):
 
     @staticmethod
     def from_file(path, parser_args: dict = None):
-        from Spectroscopy.SpecCore.coreParser import Parser
+        from ..coreParser import Parser
 
         path = Parser.parse_path(path)[0]
 

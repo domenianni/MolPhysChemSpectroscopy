@@ -239,7 +239,7 @@ class ImportTimeResolvedFTIR(ImportTimeResolvedBase):
                    x_unit: str = 'wn',
                    t_unit: str = 's',
                    sep: str = '\t'):
-        from Spectroscopy.SpecCore.coreParser import Parser
+        from ..SpecCore.coreParser import Parser
 
         files = Parser.parse_path(path)
 
