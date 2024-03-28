@@ -66,7 +66,7 @@ class EnergyAxis(AbstractAxis):
             return self
 
         if axis_type == 'wl':
-            from Spectroscopy.SpecCore.SpecCoreAxis.coreWavelengthAxis import WavelengthAxis
+            from .coreWavelengthAxis import WavelengthAxis
             return WavelengthAxis(10_000_000 / self._array, 'wl')
 
         elif axis_type == 'ev':

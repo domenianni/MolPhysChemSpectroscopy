@@ -41,7 +41,7 @@ class WavelengthAxis(AbstractAxis):
             return self
 
         if axis_type == 'wn':
-            from Spectroscopy.SpecCore.SpecCoreAxis.coreEnergyAxis import EnergyAxis
+            from .coreEnergyAxis import EnergyAxis
             return EnergyAxis(10_000_000 / self._array, 'wn')
 
         else:
