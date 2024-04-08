@@ -17,6 +17,8 @@ This file is part of pySpec
 """
 
 import numpy as np
+from math import floor
+import warnings
 
 from ..SpecCoreAxis.coreAbstractAxis import AbstractAxis
 from ..SpecCoreData.coreAbstractData import AbstractData
@@ -107,7 +109,15 @@ class SliceFactory:
                 raise ValueError("List of positions has to be only 2!")
 
             if isinstance(item[0], str):
-                idx = [i + self._names.closest_to(float(item[0]))[0] - int(item[1]/2) for i in range(item[1])]
+                if (item[1] % 2) == 0:
+
+                    warnings.warn(f" Even sized average windows do not center the average on the requested position!"
+                                  f" The average is now centered between: "
+                                  f" {self._names.closest_to(float(item[0]))[1]} and"
+                                  f" {self._names[self._names.closest_to(float(item[0]))[0] + 1]}!",
+                                  category=SyntaxWarning, stacklevel=0)
+
+                idx = [i + self._names.closest_to(float(item[0]))[0] - floor(item[1]/2) for i in range(item[1])]
             else:
                 idx = [self._axis.closest_to(float(x))[0] for x in item]
                 idx = [x for x in range(idx[0], idx[1])]
