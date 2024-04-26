@@ -200,6 +200,22 @@ class TransientSpectrum(AbstractSpectrum):
 
         return spec
 
+    def append(self, other):
+        if not isinstance(other, TransientSpectrum):
+            raise ValueError("Can only concatenate TransientSpectrum with another instance of TransientSpectrum!")
+
+        other.interpolate_to(None, self.t)
+
+        self.orient_data('t')
+        other.orient_data('t')
+
+        x = np.concatenate((self.x.array, other.x.array))
+        y = np.concatenate((self.y.array, other.y.array), axis=1)
+
+        spec = TransientSpectrum(x, self.t, y, self._x_axis.unit, self._t_axis.unit, self._data.unit)
+
+        return spec
+
     def subtract(self, other):
         if not isinstance(other, TransientSpectrum) and not isinstance(other, Spectrum):
             raise ValueError("Can only subtract TransientSpectrum from another instance of TransientSpectrum or "
@@ -220,6 +236,21 @@ class TransientSpectrum(AbstractSpectrum):
                                  self._x_axis.unit,
                                  self._t_axis.unit,
                                  self._data.unit)
+
+    def subtract_prescans(self, until_time, from_time=None):
+        self.orient_data('x')
+
+        until_time_idx = self.t.closest_to(until_time)[0]
+
+        from_time_idx = 0
+        if from_time is not None:
+            from_time_idx = self.t.closest_to(from_time)[0]
+
+        idx = slice(from_time_idx, until_time_idx)
+        pre_scan = self.spectrum[idx]
+        self.y = self.y.array - np.tile(pre_scan.y.array, (len(self.t), 1)).T
+
+        return pre_scan
 
     def truncate_to(self, x_range=None, t_range=None, inplace=True):
         data = self._inplace(inplace)
