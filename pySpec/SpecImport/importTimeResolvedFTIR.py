@@ -78,6 +78,8 @@ class ImportTimeResolvedFTIR(ImportTimeResolvedBase):
         self._solvent = Spectrum.average_from_files(path, parser_args)
         self._solvent.interpolate_to(self._intensities_list[0].x)
 
+        return self
+
     def __singular_timeaxis(self, time_axis: TimeAxis):
         for data in self._data_list:
             data.t = time_axis
@@ -121,6 +123,8 @@ class ImportTimeResolvedFTIR(ImportTimeResolvedBase):
         for data in self._data_list:
             data.t -= data.t[self._pre_scans_amount]
 
+        return self
+
     def define_timeaxis(self, step_size):
         t = TimeAxis.from_parameters(steps          = len(self._data_list[0].t),
                                      step_size      = step_size,
@@ -129,6 +133,8 @@ class ImportTimeResolvedFTIR(ImportTimeResolvedBase):
 
         for data in self._data_list:
             data.t = t
+
+        return self
 
     def _calculate_dod(self):
         if not self.__dod:
@@ -174,6 +180,8 @@ class ImportTimeResolvedFTIR(ImportTimeResolvedBase):
 
                 data.y = data.y * ref_y
 
+        return self
+
     def atmospheric_correction(self, atm_data: Spectrum, x_range=None):
         self._orient_all_data('t')
 
@@ -202,6 +210,8 @@ class ImportTimeResolvedFTIR(ImportTimeResolvedBase):
             data.y = data.y - np.outer(np.array(amp_array), atm_data.y.array)
 
             del(data_short)
+
+        return self
 
     @staticmethod
     def read_data(file, sep='\t'):
