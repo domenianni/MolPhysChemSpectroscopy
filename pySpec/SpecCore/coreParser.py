@@ -73,7 +73,9 @@ class Parser:
                  import_type: str = 'x_first',
                  x_unit: str      = 'wn',
                  t_unit: str      = 's',
-                 data_unit: str   = 'od'):
+                 data_unit: str   = 'od',
+                 header: int      = 0,
+                 style: str       = 'eng'):
 
         self.t_unit = t_unit
         self.count = -1
@@ -86,6 +88,10 @@ class Parser:
         self.file_path = file_path
 
         self.file_content = self._read_file()
+        self.file_content = self.file_content[header:]
+
+        if style == 'ger':
+            self.file_content = [s.replace(',', '.') for s in self.file_content]
 
         if import_type in ('one_dimension', 'spectrum', 'transient'):
             self.data = self._read_data(self._one_dimensional_data)
