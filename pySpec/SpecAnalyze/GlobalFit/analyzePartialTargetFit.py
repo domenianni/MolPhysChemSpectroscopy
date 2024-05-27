@@ -32,6 +32,7 @@ import matplotlib.pyplot as plt
 class PartialTargetFit(GlobalFit):
 
     _WEIGHTING = 10
+    _PENALTY = 0.5
 
     @property
     def parent(self):
@@ -70,7 +71,7 @@ class PartialTargetFit(GlobalFit):
 
         return (
                 np.sum(np.abs(self._residuals)) +
-                self._WEIGHTING * np.sum(np.abs(np.where(self._positive_data < 0, self._positive_data, 0)))
+                self._WEIGHTING * np.sum(np.where(self._positive_data < 0, np.abs(self._positive_data), self._PENALTY * np.abs(self._positive_data)))
                 )
 
     def _kernel(self,
@@ -119,7 +120,7 @@ class PartialTargetFit(GlobalFit):
 
 
 if __name__ == '__main__':
-    from Spectroscopy.SpecCore.SpecCoreSpectrum import Spectrum
+    from pySpec.SpecCore.SpecCoreSpectrum import Spectrum
     
     data_path = r""
     data = TransientSpectrum.from_file(data_path)
