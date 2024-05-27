@@ -119,10 +119,12 @@ class NumericalFit:
 
         self.fit.save(path + f"{self._data.position['value']:.1f}_{self._data.position['unit']}_fit_function.dat")
 
+        return self
+
 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
-    from Spectroscopy import TransientSpectrum
+    from pySpec import TransientSpectrum
 
     d = TransientSpectrum.from_file(r"")
 
