@@ -96,7 +96,25 @@ class Calculation(Spectrum):
         pass
 
     def save(self, path):
-        pass
+        """
+        :param path: The path to save at.
+
+        Saves the spectrum as an ascii-formatted file.
+        """
+        self._save_one_dimension(self._x_axis, self._data, path)
+
+        return self
+
+    def save_stick(self, path):
+        """
+        :param path: The path to save at.
+
+        Saves the spectrum as an ascii-formatted file.
+        """
+
+        self._save_one_dimension(self._pos_axis, self._int_axis, path)
+
+        return self
 
     def eliminate_repetition(self):
         pass
