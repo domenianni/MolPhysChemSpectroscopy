@@ -3,6 +3,7 @@ import math
 import re
 import scipy.constants as spc
 from pathlib import Path
+import warnings
 
 from ..SpecCore import coreLineShapes as cLS
 from ..SpecCore.SpecCoreSpectrum.coreSpectrum import Spectrum
@@ -64,6 +65,8 @@ class ImportCalculation:
                  position: list[float] or None = None,
                  intensity: list[float] or None = None
                  ) -> None:
+
+        warnings.warn(DeprecationWarning)
 
         self.__file = Path(file)
 
