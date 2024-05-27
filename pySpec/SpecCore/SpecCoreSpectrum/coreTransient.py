@@ -156,13 +156,14 @@ class Transient(AbstractSpectrum):
 
     @staticmethod
     def from_file(path, parser_args: dict = None):
-        from Spectroscopy.SpecCore.coreParser import Parser
+        from pySpec.SpecCore.coreParser import Parser
 
         args = {'t_unit': 's', 'data_unit': 'od'}
         if parser_args is not None:
             args.update(parser_args)
 
-        return Parser(path,  import_type='transient', interface='new', **args)[0]
+        return Parser(path,  import_type='transient', **args)[0]
+
 
 if __name__ == '__main__':
     pass
