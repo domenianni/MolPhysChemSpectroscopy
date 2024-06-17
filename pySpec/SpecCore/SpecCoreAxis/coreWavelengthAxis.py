@@ -17,10 +17,12 @@ This file is part of pySpec
 """
 
 from .coreAbstractAxis import AbstractAxis
+from ..coreFunctions import inPlaceOp
 
 
 class WavelengthAxis(AbstractAxis):
 
+    @inPlaceOp
     def shift_by(self, amount: float, anchor: None = None):
         """"""
         self._array = self._array + amount

@@ -58,7 +58,7 @@ class SliceFactory:
 
         # arrange data, so that the first dimension corresponds to the requested axis.
         if self._data.shape[0] == len(self._axis):
-            self._data = self._data.transpose()
+            self._data = self._data.transpose(inplace=False)
 
         data, name = self._process_item(item)
 

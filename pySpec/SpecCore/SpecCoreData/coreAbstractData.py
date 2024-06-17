@@ -18,6 +18,8 @@ This file is part of pySpec
 
 from abc import ABC, abstractmethod
 
+from ..coreFunctions import inPlaceOp
+
 import numpy as np
 
 
@@ -121,14 +123,18 @@ class AbstractData(ABC):
 
         return other
 
+    @inPlaceOp
     def calc_ex_coeff(self, layer_thickness: float, concentration: float) -> np.ndarray:
         """
         :param layer_thickness: Cell layer thickness in cm
         :param concentration: Concentration of substance in mol/L
         :returns: the extinction coefficients calculated by lambert-beers law.
         """
-        return self._array / (layer_thickness * concentration)
 
+        self._array = self._array / (layer_thickness * concentration)
+        return self
+
+    @inPlaceOp
     def calc_ex_coeff_mv(self, layer_thickness: float, mass: float, molar_mass: float, volume: float) -> np.ndarray:
         """
          :param layer_thickness: Cell layer thickness in cm

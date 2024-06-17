@@ -17,6 +17,8 @@ This file is part of pySpec
 """
 
 from .coreAbstractData import AbstractData
+from ..coreFunctions import inPlaceOp
+
 import numpy as np
 
 
@@ -37,6 +39,7 @@ class OneDimensionalData(AbstractData):
 
         super().__init__(array, unit)
 
+    @inPlaceOp
     def sort_by(self, sorting_mask):
         """
         :param sorting_mask: The mask to sort the data by. The mask must be of the same size as the array and contain
@@ -49,6 +52,8 @@ class OneDimensionalData(AbstractData):
                             f"{np.shape(sorting_mask)}; {np.shape(self._array)}")
 
         self._array = self._array[sorting_mask]
+
+        return self
 
     def truncate_to(self, region=None):
         pass

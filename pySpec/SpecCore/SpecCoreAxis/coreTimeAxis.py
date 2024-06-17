@@ -17,6 +17,7 @@ This file is part of pySpec
 """
 
 from .coreAbstractAxis import AbstractAxis
+from ..coreFunctions import inPlaceOp
 
 import numpy as np
 
@@ -38,6 +39,7 @@ class TimeAxis(AbstractAxis):
 
     ndim = 1
 
+    @inPlaceOp
     def shift_by(self, amount, anchor=None):
         """"""
         self._array += amount

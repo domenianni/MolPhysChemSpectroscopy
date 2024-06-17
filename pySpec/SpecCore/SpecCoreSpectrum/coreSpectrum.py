@@ -21,6 +21,7 @@ from ..SpecCoreAxis.coreAbstractAxis import AbstractAxis
 from ..SpecCoreAxis.coreWavelengthAxis import WavelengthAxis
 from ..SpecCoreAxis.coreEnergyAxis import EnergyAxis
 from ..SpecCoreData import OneDimensionalData
+from ..coreFunctions import inPlaceOp
 from copy import deepcopy
 
 import numpy as np
@@ -98,6 +99,7 @@ class Spectrum(AbstractSpectrum):
 
         raise ValueError(f"array must be of type np.ndarray, not {type(array)}")
 
+    @inPlaceOp
     def average(self, x_width: int = 2):
         """
         :param x_width: The step size in integers for reductive averaging.
@@ -109,6 +111,7 @@ class Spectrum(AbstractSpectrum):
 
         return self
 
+    @inPlaceOp
     def sort(self):
         """
         Sorts the x-axis and the data in ascending fashion.
@@ -118,39 +121,40 @@ class Spectrum(AbstractSpectrum):
 
         return self
 
-    def interpolate_to(self, x_axis: EnergyAxis or WavelengthAxis or np.ndarray, inplace: bool = True):
+    @inPlaceOp
+    def interpolate_to(self, x_axis: EnergyAxis or WavelengthAxis or np.ndarray):
         """
         Interpolates the data to a new x-axis and overwrites the existing x- and y-axis. If the x-axis is
         out-of-bounds of the old x-axis all missing values are set as `np.nan`.
         """
-        data = self._inplace(inplace)
 
-        f = interp1d(data.x, np.nan_to_num(data.y), bounds_error=False, fill_value=np.nan)
+        f = interp1d(self.x, np.nan_to_num(self.y), bounds_error=False, fill_value=np.nan)
 
         if isinstance(x_axis, EnergyAxis) and not isinstance(x_axis, WavelengthAxis):
-            data.y = f(x_axis.array)
+            self.y = f(x_axis.array)
         elif isinstance(x_axis, np.ndarray):
-            data.y = f(x_axis)
+            self.y = f(x_axis)
         else:
             raise ValueError(f"array must be of type EnergyAxis or WavelengthAxis, or be a np.ndarray, not {type(x_axis)}")
 
-        data.x = x_axis
+        self.x = x_axis
 
-        return data
+        return self
 
-    def truncate_to(self, x_range: list = None, inplace=True):
+    @inPlaceOp
+    def truncate_to(self, x_range: list = None):
         """
         :param x_range: List of two values denoting the lower and upper bound to truncate to.
         :param inplace: Modify values inplace or return a new instance.
         """
-        data = self._inplace(inplace)
 
-        x_range = [data.x.closest_to(x)[0] for x in x_range]
-        data.x, data.y = data._truncate_one_dimension(x_range, data.x)
+        x_range = [self.x.closest_to(x)[0] for x in x_range]
+        self.x, self.y = self._truncate_one_dimension(x_range, self.x)
 
-        return data
+        return self
 
-    def truncate_like(self, x_array, inplace: bool = True):
+    @inPlaceOp
+    def truncate_like(self, x_array):
         """
         :param x_array: Reference to truncate the spectrum to.
         :type x_array: array_like
@@ -158,11 +162,9 @@ class Spectrum(AbstractSpectrum):
 
         Truncate the data according to the supplied `x_array`.
         """
-        data = self._inplace(inplace)
+        self.x, self.y = self._truncate_like_array_one_dimension(x_array, self.x)
 
-        data.x, data.y = data._truncate_like_array_one_dimension(x_array, data.x)
-
-        return data
+        return self
 
     def save(self, path):
         """
@@ -174,11 +176,13 @@ class Spectrum(AbstractSpectrum):
 
         return self
 
+    @inPlaceOp
     def eliminate_repetition(self):
         self.x, self.y = self._eliminate_repetition_1d(self.x)
 
         return self
 
+    @inPlaceOp
     def eliminate_idx(self, x_idx=None):
         if x_idx is not None:
             self.x, self.y = self._eliminate_pos_1d(self.x, x_idx)

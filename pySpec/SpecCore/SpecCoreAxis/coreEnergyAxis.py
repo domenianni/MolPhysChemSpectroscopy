@@ -17,6 +17,8 @@ This file is part of pySpec
 """
 
 from .coreAbstractAxis import AbstractAxis
+from ..coreFunctions import inPlaceOp
+
 import numpy as np
 import scipy.constants as spc
 
@@ -32,6 +34,7 @@ class EnergyAxis(AbstractAxis):
 
     ndim = 1
 
+    @inPlaceOp
     def shift_by(self, amount: float, anchor: float = None):
         """
         :param amount: The amount to shift the axis by.
@@ -50,6 +53,8 @@ class EnergyAxis(AbstractAxis):
         x_temp += diff
 
         self._array = np.divide(1, x_temp)
+
+        return self
 
     def convert_to(self, axis_type: str = None):
         """

@@ -17,6 +17,8 @@ This file is part of pySpec
 """
 
 from .coreAbstractData import AbstractData
+from ..coreFunctions import inPlaceOp
+
 import numpy as np
 
 
@@ -37,6 +39,7 @@ class TwoDimensionalData(AbstractData):
 
         super().__init__(array, unit)
 
+    @inPlaceOp
     def sort_by(self, sorting_mask: np.ndarray):
         """
         :param sorting_mask: The mask to sort the data by. The mask must be of the same size and dimensionality as the
@@ -56,23 +59,22 @@ class TwoDimensionalData(AbstractData):
         shape_index = np.shape(self._array).index(sorting_mask.size)
 
         if shape_index != 0:
-            self.transpose(inplace=True)
+            self.transpose()
 
         self._array = self._array[sorting_mask]
 
         return self
 
-    def transpose(self, inplace=False):
+    @inPlaceOp
+    def transpose(self):
         """
         :param inplace: Whether to copy the data or modify the data inplace.
 
         Transposes the data.
         """
-        if not inplace:
-            return TwoDimensionalData(self._array.T, self._unit)
-        else:
-            self._array = self._array.T
-            return self
+
+        self._array = self._array.T
+        return self
 
     def truncate_to(self, region=None):
         pass
