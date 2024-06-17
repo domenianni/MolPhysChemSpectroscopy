@@ -22,6 +22,7 @@ from ..SpecCoreAxis.coreWavelengthAxis import WavelengthAxis
 from ..SpecCoreAxis.coreEnergyAxis import EnergyAxis
 
 import numpy as np
+from warnings import warn
 
 
 class StickSpectrum(AbstractSpectrum):
@@ -41,6 +42,8 @@ class StickSpectrum(AbstractSpectrum):
                  intensities: np.ndarray,
                  pos_unit: str,
                  int_unit: str):
+
+        warn(DeprecationWarning)
 
         if len(np.shape(intensities)) != 1:
             raise ValueError("Data Object only accepts one-dimensional arrays.")
