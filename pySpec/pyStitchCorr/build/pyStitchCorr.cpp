@@ -1,6 +1,10 @@
 #include "pyStitchCorr.h"
 
-double wrapper(const std::vector<double> &offset, std::vector<double>& grad, void * data){
+double wrapper_ref(const std::vector<double> &offset, std::vector<double>& grad, void* data){
+    return reinterpret_cast<StitchCorr*>(data)->calcTVref(offset, grad);
+}
+
+double wrapper(const std::vector<double> &offset, std::vector<double>& grad, void* data){
     return reinterpret_cast<StitchCorr*>(data)->calcTV(offset, grad);
 }
 
@@ -22,11 +26,16 @@ StitchCorr& StitchCorr::compareBlocks(){
 
     std::ofstream log {"log.txt"};
 
+    // Select the asymmetric kernel function for calcTV if the asymmetric flag is set.
+    if (m_isAsymmetric) { m_kernel_ptr = &StitchCorr::kernel_asym; }
+
     log << "Blocks: " << m_blockCount << "; Pixel: " << s_pixelCount << "; Timesteps: " << m_timesteps << std::endl;
 
     // Member variable (current time step) used to increment through time steps. Retrieved inside the target function
     while(m_currTimeStep < m_timesteps){
-        std::vector<double> offset(2*m_blockCount, m_offsetInitValue);
+
+        // offset is shorter by 1 if m_reference is not -1, meaning a reference block has been selected
+        std::vector<double> offset(m_blockFactor*m_blockCount-(m_reference > -1), m_offsetInitValue);
 
         log << "Optimising timestep " << m_currTimeStep << "( " << m_t[m_currTimeStep] << " )" << std::endl;
 
@@ -41,8 +50,11 @@ StitchCorr& StitchCorr::compareBlocks(){
          *  Target function wrapped outside the class to allow access to the class variables.
          */
 
-        nlopt::opt opt{nlopt::opt(m_algorithm, 2*m_blockCount)};
+        nlopt::opt opt{nlopt::opt(m_algorithm, m_blockFactor*m_blockCount-(m_reference > -1))};
+
         opt.set_min_objective(wrapper, this);
+        if (m_reference > -1) { opt.set_min_objective(wrapper_ref, this); }
+
         opt.set_maxeval(m_maxeval);
         opt.set_ftol_abs(m_ftol);
         opt.set_xtol_abs(m_xtol);
@@ -51,7 +63,7 @@ StitchCorr& StitchCorr::compareBlocks(){
         try{
             nlopt::result result = opt.optimize(offset, minf);
             log << result << std::endl << "Offset: [ ";
-            for (int i{0}; i < 2*m_blockCount; ++i){
+            for (int i{0}; i < m_blockFactor*m_blockCount-(m_reference > -1); ++i){
                 log << offset[i] << " ";
             }
             log << "]" << std::endl;
@@ -66,9 +78,22 @@ StitchCorr& StitchCorr::compareBlocks(){
     return *this;
 }
 
+double StitchCorr::calcTVref(const std::vector<double>& offset, std::vector<double> &grad) {
+    // Calculates the total variance, with regard to one (signified by m_reference) block.
+    // Only needs to loop then over one idx to cover all blocks.
+    double sum{0};
+
+    for (int i{0}; i < m_blockCount; ++i) {
+        if (i == m_reference){continue;}
+
+        sum = kernel_ref(sum, offset, i, m_reference);
+        }
+
+    return sum;
+}
+
 double StitchCorr::calcTV(const std::vector<double>& offset, std::vector<double> &grad){
     double sum{0};
-    int elements{0};
 
     for (int i{0}; i < m_blockCount; ++i){
         for (int j{0}; j < m_blockCount; ++j){
@@ -76,48 +101,100 @@ double StitchCorr::calcTV(const std::vector<double>& offset, std::vector<double>
             if (i==j){continue;}
             /* skip calculations so that no block is compared against itself (even though it
              * would work for the odd-even comparison)
-             *
-             * Since wavelength difference for each pixel pair is equidistant between two blocks it can be calculated
-             * early.
              */
 
-            double dx_inv = 1 / std::abs(m_x[ravelIndex(0, i, 0)] - m_x[ravelIndex(0, j, 0)]);
-            double dx_asm = 1 / std::abs(m_x[ravelIndex(1, i, 0)] - m_x[ravelIndex(0, j, 0)]);
-
-            for (int k{0}; k < s_pixelCount - 1; ++k){
-                /* Checks if any of the calculated pixel is a NAN and skips the evaluation in this case, since it would
-                 * lead to undefined behaviour! */
-                if (    std::isnan(m_y[ravelIndex(k, i, m_currTimeStep)]) |
-                        std::isnan(m_y[ravelIndex(k, j, m_currTimeStep)]) |
-                        std::isnan(m_y[ravelIndex(k+1, i, m_currTimeStep)]))
-                {continue;}
-
-                // calculates the total variance between the same pixels of different stitch blocks
-                sum += std::abs(
-                        (m_y[ravelIndex(k, i, m_currTimeStep)] +
-                         offset[ravelIndex(static_cast<int>(k % 2 != 0), i, 0, 2)]) -
-                        (m_y[ravelIndex(k, j, m_currTimeStep)] +
-                         offset[ravelIndex(static_cast<int>(k % 2 != 0), j, 0, 2)])
-                ) * dx_inv;
-
-                // calculates the total variance between even-odd / odd-even adjacent pixels of different stitch blocks
-                sum += std::abs(
-                        (m_y[ravelIndex(k+1, i, m_currTimeStep)] +
-                         offset[ravelIndex(static_cast<int>((k+1) % 2 != 0), i, 0, 2)]) -
-                        (m_y[ravelIndex(k, j, m_currTimeStep)] +
-                         offset[ravelIndex(static_cast<int>(k % 2 != 0), j, 0, 2)])
-                ) * dx_asm;
-
-                elements += 2;
+            sum = (this->*m_kernel_ptr)(sum, offset, i, j);
             }
         }
-    }
     /* for now only the sum is returned. Though I don't know if it is necessary to calculate the mean, since this would
      * account for the existence of NAN values. Though inclusion of taking the mean will slow down the program and
      * necessitate a check for complete NAN values, so that no undefined behaviour occurs.
      * if (elements == 0){return 0;}
      */
-    return sum; // /elements;
+    return sum;
+}
+
+double StitchCorr::kernel_ref(double sum, const std::vector<double>& offset, int i, int ref) {
+    /* Since wavelength difference for each pixel pair is equidistant between two blocks it can be calculated
+     * early.
+     */
+    double dx_inv = 1 / std::abs(m_x[ravelIndex(0, i, 0)] - m_x[ravelIndex(0, ref, 0)]);
+
+    for (int k{0}; k < s_pixelCount - 1; ++k){
+        /* Checks if any of the calculated pixel is a NAN and skips the evaluation in this case, since it would
+         * lead to undefined behaviour! */
+        if (    std::isnan(m_y[ravelIndex(k, i, m_currTimeStep)]) |
+                std::isnan(m_y[ravelIndex(k, ref, m_currTimeStep)]))
+        {continue;}
+
+        // calculates the total variance between the same pixels of different stitch blocks. If i > ref, the reference
+        // has been passed and the offset index needs to be reduced by 1
+        sum += std::abs( m_y[ravelIndex(k, i, m_currTimeStep)] +
+                            offset[i - (i > ref)] -
+                            m_y[ravelIndex(k, ref, m_currTimeStep)]
+        ) * dx_inv;
+    }
+
+    return sum;
+}
+
+double StitchCorr::kernel(double sum, const std::vector<double>& offset, int i, int j) {
+    /* Since wavelength difference for each pixel pair is equidistant between two blocks it can be calculated
+     * early.
+     */
+    double dx_inv = 1 / std::abs(m_x[ravelIndex(0, i, 0)] - m_x[ravelIndex(0, j, 0)]);
+
+    for (int k{0}; k < s_pixelCount - 1; ++k){
+        /* Checks if any of the calculated pixel is a NAN and skips the evaluation in this case, since it would
+         * lead to undefined behaviour! */
+        if (    std::isnan(m_y[ravelIndex(k, i, m_currTimeStep)]) |
+                std::isnan(m_y[ravelIndex(k, j, m_currTimeStep)]))
+        {continue;}
+
+        // calculates the total variance between the same pixels of different stitch blocks
+        sum += std::abs(
+                (m_y[ravelIndex(k, i, m_currTimeStep)] + offset[i]) -
+                (m_y[ravelIndex(k, j, m_currTimeStep)] + offset[j])
+        ) * dx_inv;
+    }
+
+    return sum;
+}
+
+double StitchCorr::kernel_asym(double sum, const std::vector<double> &offset, int i, int j) {
+    /* Since wavelength difference for each pixel pair is equidistant between two blocks it can be calculated
+     * early.
+     */
+
+    double dx_inv = 1 / std::abs(m_x[ravelIndex(0, i, 0)] - m_x[ravelIndex(0, j, 0)]);
+    double dx_asm = 1 / std::abs(m_x[ravelIndex(1, i, 0)] - m_x[ravelIndex(0, j, 0)]);
+
+    for (int k{0}; k < s_pixelCount - 1; ++k) {
+        /* Checks if any of the calculated pixel is a NAN and skips the evaluation in this case, since it would
+         * lead to undefined behaviour! */
+        if (    std::isnan(m_y[ravelIndex(k, i, m_currTimeStep)]) |
+                std::isnan(m_y[ravelIndex(k, j, m_currTimeStep)]) |
+                std::isnan(m_y[ravelIndex(k+1, i, m_currTimeStep)]))
+        {continue;}
+
+        // calculates the total variance between the same pixels of different stitch blocks
+        sum += std::abs(
+                (m_y[ravelIndex(k, i, m_currTimeStep)] +
+                 offset[ravelIndex(k % 2 != 0, i, 0, 2)]) -
+                (m_y[ravelIndex(k, j, m_currTimeStep)] +
+                 offset[ravelIndex(k % 2 != 0, j, 0, 2)])
+        ) * dx_inv;
+
+        // calculates the total variance between even-odd / odd-even adjacent pixels of different stitch blocks
+        sum += std::abs(
+                (m_y[ravelIndex(k+1, i, m_currTimeStep)] +
+                 offset[ravelIndex((k+1) % 2 != 0, i, 0, 2)]) -
+                (m_y[ravelIndex(k, j, m_currTimeStep)] +
+                 offset[ravelIndex(k % 2 != 0, j, 0, 2)])
+        ) * dx_asm;
+    }
+
+    return sum;
 }
 
 StitchCorr& StitchCorr::addOffset(std::vector<double>& offset, std::ofstream& log){
@@ -129,17 +206,24 @@ StitchCorr& StitchCorr::addOffset(std::vector<double>& offset, std::ofstream& lo
      * Corrects the member DOD values (m_y) by the calculated offset values. Also uses the built-in current timestep
      * counter.
      */
-
-    int asym{2}; // Just used since the blockCount needs to be multiplied by two for odd-even stitch correction
-
+    bool ref_passed = false;
     for (int i{0}; i < m_blockCount; ++i){
+        // If a reference was selected m_reference will be > -1
+        if (m_reference == i) {
+            ref_passed = true;
+            continue;
+        }
+
         for (int j{0}; j < s_pixelCount; ++j){
-            m_y[ravelIndex(j, i, m_currTimeStep)] += offset[ravelIndex(static_cast<int>(j % 2 != 0), i, 0, asym)];
+            m_y[ravelIndex(j, i, m_currTimeStep)] +=
+                offset[ravelIndex(j % m_blockFactor != 0, i - ref_passed, 0, m_blockFactor)];
         }
     }
 
-    for(int i{0}; i < m_blockCount * asym; ++i) {
-        m_offset[i + m_currTimeStep * (m_blockCount * 2)] = offset[i];
+    for(int i{0}; i < m_blockCount * m_blockFactor - (m_reference > -1); ++i) {
+        if (m_reference == i){continue;}
+
+        m_offset[i + m_currTimeStep * (m_blockCount * m_blockFactor)] = offset[i];
     }
     return *this;
 }
@@ -164,74 +248,14 @@ int StitchCorr::ravelIndex(const int pixelIdx, const int blockIdx, const int tim
 
 #if (USING(PY))
 
-int ravelIndexComplete(const int pixelIdx, const int blockIdx, int pixelCount){
-    return (pixelIdx + (pixelCount) * blockIdx);
-}
-
-double calcTVFunc(py::array& offArray, py::array& xArray, py::array& yArray){
-    /*
-     * Pure target function to be called from python frontend and minimized within this context. Only one timestep at
-     * a time is processed.
-     *
-     * @param offArray: Numpy array of offset values, which are added ontop of DOD values.
-     *
-     * @param xArray, yArray: Numpy array of the respective wavelength and DOD values.
-     *
-     * @returns Mean total variance (one double value).
-     *
-     * See documentation inside the class for more details on the evaluated function.
-     */
-
-    py::buffer_info offInfo = offArray.request();
-    auto offset = static_cast<double *>(offInfo.ptr);
-    auto offShape = static_cast<int>(offInfo.shape[0]);
-
-    py::buffer_info Xinfo = xArray.request();
-    auto x = static_cast<double *>(Xinfo.ptr);
-    auto Xshape = static_cast<int>(Xinfo.shape[0]);
-
-    py::buffer_info Yinfo = yArray.request();
-    auto y = static_cast<double *>(Yinfo.ptr);
-    auto Yshape = static_cast<int>(Yinfo.shape[0]);
-
-    int blockCount{offShape/2};
-    int pixelCount{Xshape / blockCount};
-
-    if (Yshape != blockCount * pixelCount){throw std::exception();}
-
-    double sum{0};
-    int elements{0};
-
-    for (int i{0}; i < blockCount; ++i){
-        for (int j{0}; j < blockCount; ++j){
-            if (i==j){
-                continue;
-            }
-            double dx_inv = abs(1 / (x[ravelIndexComplete(0, i, pixelCount)] - x[ravelIndexComplete(0, j, pixelCount)]));
-
-            for (int k{0}; k < pixelCount - 2; ++k){
-                sum = sum + (
-                        std::abs((y[ravelIndexComplete(k, i, pixelCount)] +
-                                offset[ravelIndexComplete(static_cast<int>((k % 2 != 0)), i, 2)]) -
-                               (y[ravelIndexComplete(k, j, pixelCount)] +
-                                offset[ravelIndexComplete(static_cast<int>(k % 2 != 0), j, 2)])
-                       )) * dx_inv;
-
-                sum = sum + (
-                        std::abs((y[ravelIndexComplete(k + 1, i, pixelCount)] +
-                                offset[ravelIndexComplete(static_cast<int>((k + 1) % 2 != 0), i, 2)]) -
-                               (y[ravelIndexComplete(k, j, pixelCount)] +
-                                offset[ravelIndexComplete(static_cast<int>(k % 2 != 0), j, 2)])
-                       )) * dx_inv;
-
-                ++elements;
-            }
-        }
-    }
-    return sum / elements;
-}
-
-py::array_t<double> callStitchCorr(py::array& x, py::array& t, py::array& y, const int blockCount=4, bool copy=true){
+py::array_t<double> callStitchCorr(py::array_t<double>& x,
+                                   py::array_t<double>& t,
+                                   py::array_t<double>& y,
+                                   const int blockCount=4,
+                                   const int reference=-1,
+                                   const bool copy=true,
+                                   const bool sortedInput=false,
+                                   const bool isAsymmetric=true){
     /**
      * @param x, t, y: numpy-arrays from python call. No changes necessary.
      *
@@ -281,7 +305,13 @@ py::array_t<double> callStitchCorr(py::array& x, py::array& t, py::array& y, con
     auto Tptr = static_cast<double *>(Tinfo.ptr);
     auto Tshape = static_cast<int>(Tinfo.shape[0]);
 
-    StitchCorr sc = StitchCorr(Xptr, Xshape, Tptr, Tshape, Yptr, Yshape, blockCount, copy);
+    auto sc = StitchCorr(Xptr, Xshape,
+                         Tptr, Tshape,
+                         Yptr, Yshape,
+                         static_cast<int>(xStride), static_cast<int>(tStride),
+                         blockCount, reference,
+                         copy, sortedInput,
+                         isAsymmetric);
 
     return sc.get_offset();
 }
@@ -289,7 +319,6 @@ py::array_t<double> callStitchCorr(py::array& x, py::array& t, py::array& y, con
 // Generates bindings for the python module. Add function/class definitions here!
 PYBIND11_MODULE(stitchCorr, m) {
 m.def("stitchCorr", &callStitchCorr);
-m.def("stitchCorrFunc", &calcTVFunc);
 }
 
 #endif
