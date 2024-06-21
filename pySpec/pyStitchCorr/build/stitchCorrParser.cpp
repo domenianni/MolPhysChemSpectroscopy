@@ -41,6 +41,7 @@ stitchCorrParser& stitchCorrParser::writeData(const std::filesystem::path& path)
 
 stitchCorrParser& stitchCorrParser::readData(const std::filesystem::path& path) {
     int row{0};
+    int column{0};
 
     std::ifstream file(path, std::ios::in);
 
@@ -56,7 +57,7 @@ stitchCorrParser& stitchCorrParser::readData(const std::filesystem::path& path) 
     std::vector<double> t;
 
     while(getline(file, str)){
-        int column{0};
+        column = 0;
         size_t pos;
         std::string token;
 
@@ -87,6 +88,8 @@ stitchCorrParser& stitchCorrParser::readData(const std::filesystem::path& path) 
             ++column;
         }
 
+        if (token.length() == 0){continue;}
+
         if (row == 0){
             x.push_back(std::stod(str));
         }
@@ -95,6 +98,11 @@ stitchCorrParser& stitchCorrParser::readData(const std::filesystem::path& path) 
         }
 
         ++row;
+    }
+
+    if (!y.empty()){
+        // Finds the empty rows between measurements!
+        this->_add_data(x, t, y);
     }
 
     file.close();
