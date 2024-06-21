@@ -19,6 +19,20 @@ StitchCorr& StitchCorr::setup(){
     return *this;
 }
 
+StitchCorr& StitchCorr::calculateStrides(bool sortedInput) {
+    if (sortedInput) {
+        m_blockStride = m_xStride;
+        m_pixelStride = m_xStride * m_blockCount;
+    }
+    else {
+        m_pixelStride = m_xStride;
+        m_blockStride = m_xStride * s_pixelCount;
+    }
+
+    return *this;
+}
+
+
 StitchCorr& StitchCorr::compareBlocks(){
     /*
      * Stitch Correction algorithm with simple built-in logger.
@@ -244,7 +258,9 @@ int StitchCorr::ravelIndex(const int pixelIdx, const int blockIdx, const int tim
     return (pixelIdx + (xLen) * blockIdx + (xLen * m_blockCount) * timeIdx);
 }
 
-// int StitchCorr::ravelIndexStride(const int pixelIdx, const int blockIdx, const int timeIdx, const int xLen) {}
+int StitchCorr::ravelIndexNew(const int pixelIdx, const int blockIdx, const int timeIdx) const{
+    return pixelIdx * m_pixelStride + blockIdx * m_blockStride + timeIdx * m_tStride;
+}
 
 #if (USING(PY))
 
