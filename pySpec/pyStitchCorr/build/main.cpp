@@ -37,9 +37,12 @@ int main(int argc, char** argv){
                     data.x.data(), static_cast<int>(data.x.size()),
                     data.t.data(), static_cast<int>(data.t.size()),
                     data.y.data(), static_cast<int>(data.y.size()),
+                    1, static_cast<int>(data.x.size()),
                     args->get_block_amount(),
+                    args->get_reference_idx(),
                     false,
-                    args->isSorted()};
+                    args->isSorted(),
+                    args->isAsymmetric()};
 
             delete sc;
         }
