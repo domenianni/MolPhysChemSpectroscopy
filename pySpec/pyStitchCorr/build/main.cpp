@@ -28,7 +28,7 @@ int main(int argc, char** argv){
 
         if (path.empty()){continue;}
 
-        auto* parser = new stitchCorrParser{};
+        auto* parser = new stitchCorrParser{args->get_delimiter()};
 
         parser->readData(path);
 

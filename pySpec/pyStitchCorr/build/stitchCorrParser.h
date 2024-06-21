@@ -27,6 +27,8 @@ class stitchCorrParser{
 
         stitchCorrParser()= default;
 
+        stitchCorrParser(const std::string& delimiter){m_delimiter = delimiter;}
+
         stitchCorrParser& readData(const std::filesystem::path& path);
         stitchCorrParser& writeData(const std::filesystem::path& path);
 

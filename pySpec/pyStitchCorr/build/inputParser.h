@@ -41,6 +41,7 @@ public:
 
     [[nodiscard]] int get_block_amount() const;
     [[nodiscard]] bool isSorted() const;
+    [[nodiscard]] std::string get_delimiter() const;
 };
 
 
