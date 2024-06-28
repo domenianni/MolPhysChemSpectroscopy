@@ -88,8 +88,6 @@ stitchCorrParser& stitchCorrParser::readData(const std::filesystem::path& path) 
             ++column;
         }
 
-        if (token.length() == 0){continue;}
-
         if (row == 0){
             x.push_back(std::stod(str));
         }
