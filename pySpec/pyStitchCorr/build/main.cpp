@@ -5,6 +5,7 @@
 #include "inputParser.h"
 #include "stitchCorrParser.h"
 #include "pyStitchCorr.h"
+#include "BaseStitchCorr.h"
 
 int main(int argc, char** argv){
 /*
@@ -18,6 +19,9 @@ int main(int argc, char** argv){
  *		-b <int> / --blocks <int> to specify the amount of blocks in the files.
  *
  *	This information is also accessible with the tag -h.
+ *
+ *  Careful: There exists a bug, where a linear correction cannot be performed, when the x-Axis has been sorted. ONLY in
+ *  this case the stitching blocks NEED to be seperate...
  */
 
     auto* args = new inputParser(argc, argv);
@@ -33,16 +37,20 @@ int main(int argc, char** argv){
         parser->readData(path);
 
         for (auto& data : parser->m_data){
-            auto* sc = new StitchCorr{
-                    data.x.data(), static_cast<int>(data.x.size()),
-                    data.t.data(), static_cast<int>(data.t.size()),
-                    data.y.data(), static_cast<int>(data.y.size()),
-                    1, static_cast<int>(data.x.size()),
-                    args->get_block_amount(),
-                    args->get_reference_idx(),
-                    false,
-                    args->isSorted(),
-                    args->isAsymmetric()};
+
+            auto* sc = new BaseStitchCorr{
+                data,
+                static_cast<unsigned int>(args->get_block_amount()),
+                1, static_cast<unsigned int>(data.x.size()),
+                args->isSorted()
+            };
+
+            if (args->get_reference_idx() == -1) {
+                sc->correctStitch(std::nullopt, args->isLinear());
+            }
+            else {
+                sc->correctStitch(args->get_reference_idx(), args->isLinear());
+            }
 
             delete sc;
         }
