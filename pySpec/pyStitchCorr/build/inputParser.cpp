@@ -15,9 +15,9 @@ bool inputParser::parse_opt_params(const std::string& arg){
             std::cout << "<arguments> <file paths>\n";
             std::cout << "With the possible arguments:\n";
             std::cout << "-s / --sorted : If the input data has a sorted wavenumber axis.\n";
-            std::cout << "-a / --asymm : If odd and even pixels have a different offset.\n";
             std::cout << "-b <int> / --blocks <int> to specify the amount of blocks in the files.\n";
             std::cout << "-r <int> / --reference <int> to specify the block to serve as reference.\n";
+            std::cout << "-l / --linear to calculate a linear function as an offset.\n";
             exit(0);
         }
 
@@ -30,12 +30,12 @@ bool inputParser::parse_opt_params(const std::string& arg){
             return true;
         }
 
-        if (arg == "-a" || arg == "--asymm") {
-            if (m_asymmetric_stitch) {
-                throw std::runtime_error("cannot use -s/--sorted param twice!");
+        if (arg == "-l" || arg == "--linear") {
+            if (m_linear) {
+                throw std::runtime_error("cannot use -l/--linear param twice!");
             }
 
-            m_asymmetric_stitch = true;
+            m_linear = true;
             return true;
         }
 
@@ -101,10 +101,10 @@ bool inputParser::get_next_path(std::filesystem::path& path){
     return m_sorted_input;
 }
 
-[[nodiscard]] bool inputParser::isAsymmetric() const {
-    return m_asymmetric_stitch;
-}
-
 [[nodiscard]] std::string inputParser::get_delimiter() const {
     return m_delimiter;
+}
+
+[[nodiscard]] bool inputParser::isLinear() const {
+    return m_linear;
 }

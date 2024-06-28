@@ -15,7 +15,7 @@ class inputParser{
 private:
     std::vector<std::filesystem::path> m_files;
     bool m_sorted_input = false;
-    bool m_asymmetric_stitch = false;
+    bool m_linear = false;
     std::string m_delimiter = " ";
     int m_block_amount = 4;
     int m_reference_idx = -1;
@@ -45,8 +45,8 @@ public:
     [[nodiscard]] int get_block_amount() const;
     [[nodiscard]] int get_reference_idx() const;
     [[nodiscard]] bool isSorted() const;
-    [[nodiscard]] bool isAsymmetric() const;
     [[nodiscard]] std::string get_delimiter() const;
+    [[nodiscard]] bool isLinear() const;
 };
 
 
