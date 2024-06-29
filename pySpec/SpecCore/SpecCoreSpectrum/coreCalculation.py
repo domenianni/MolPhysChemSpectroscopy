@@ -137,7 +137,7 @@ class Calculation(Spectrum):
                  lineshape:     str = 'lorentz'):
 
         self._int_axis = OneDimensionalData(intensities, int_unit)
-        self._lineshape_params = self.__ENVELOPE.get(lineshape)
+        self._lineshape_params = self.__ENVELOPE.get(lineshape).copy()
         self._lineshape = lineshape
         self._recalculate = False
 
