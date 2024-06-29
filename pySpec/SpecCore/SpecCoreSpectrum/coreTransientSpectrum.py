@@ -31,8 +31,21 @@ from ..SpecCoreAxis.coreTimeAxis import TimeAxis
 from ..SpecCoreAxis.coreEnergyAxis import EnergyAxis
 from ..SpecCoreAxis.coreWavelengthAxis import WavelengthAxis
 
+from ..coreFunctions import inPlaceOp
+
 
 class TransientSpectrum(AbstractSpectrum):
+    """
+    Class to represent the time evolution of spectra. Therefore, it possesses an energy axis (Wavelength/Wavenumber/etc.)
+    as well as a time axis, with the respective units.
+
+    :param x_array: The energy-axis as a np.ndarray or a subclass of AbstractAxis
+    :param t_array: The time axis as a np.ndarray or a subclass of AbstractAxis
+    :param data_array: The data-array as a np.ndarray or an instance of TwoDimensionalData
+    :param x_unit: The unit of the x-axis. Can be 'wn', 'wl' or 'ev'.
+    :param t_unit: The unit of the t-axis. Supports different magnitudes like 'ps', 'ns', 'us', 'ms' etc.
+    :param data_unit: The unit of the data array.
+    """
 
     def __init__(self,
                  x_array: np.ndarray or AbstractAxis,
@@ -113,6 +126,7 @@ class TransientSpectrum(AbstractSpectrum):
     def spectrum(self):
         return SliceFactory(self._x_axis, self._data, self._t_axis)
 
+    @inPlaceOp
     def average(self, x_width=None, t_width=None):
         if x_width is not None:
             self.orient_data('x')
@@ -123,6 +137,7 @@ class TransientSpectrum(AbstractSpectrum):
 
         return self
 
+    @inPlaceOp
     def sort(self):
         sorting_mask = self._x_axis.sort_array()
         self._data.sort_by(sorting_mask)
@@ -131,32 +146,30 @@ class TransientSpectrum(AbstractSpectrum):
 
         return self
 
+    @inPlaceOp
     def interpolate_to(self,
                        x_axis: None or EnergyAxis or WavelengthAxis = None,
-                       t_axis: None or TimeAxis = None,
-                       inplace=True):
-        data = self._inplace(inplace)
-
+                       t_axis: None or TimeAxis = None):
         if not isinstance(x_axis, EnergyAxis) and not isinstance(x_axis, WavelengthAxis) and x_axis is not None:
             raise ValueError(f"x_axis must be of type EnergyAxis or WavelengthAxis, not {type(x_axis)}")
         if not isinstance(t_axis, TimeAxis) and t_axis is not None:
             raise ValueError(f"t_axis must be of type TimeAxis, not {type(t_axis)}")
 
-        data.orient_data('t')
+        self.orient_data('t')
 
-        f = interp2d(data.x, data.t, np.nan_to_num(data.y),
+        f = interp2d(self.x, self.t, np.nan_to_num(self.y),
                      bounds_error=False, fill_value=np.nan)
 
         if x_axis is None:
-            x_axis = data._x_axis
+            x_axis = self._x_axis
         if t_axis is None:
-            t_axis = data._t_axis
+            t_axis = self._t_axis
 
-        data._data.array = f(x_axis.array, t_axis.array)
-        data.x = x_axis
-        data.t = t_axis
+        self._data.array = f(x_axis.array, t_axis.array)
+        self.x = x_axis
+        self.t = t_axis
 
-        return data
+        return self
 
     def save(self, path):
         self.orient_data('t')
@@ -176,6 +189,7 @@ class TransientSpectrum(AbstractSpectrum):
 
         return self
 
+    @inPlaceOp
     def eliminate_repetition(self):
         self.orient_data('x')
         self.x, self.y = self._eliminate_repetition_1d(self.x)
@@ -184,7 +198,13 @@ class TransientSpectrum(AbstractSpectrum):
 
         return self
 
-    def extend(self, other):
+    def extend(self, other: AbstractSpectrum):
+        """
+        Extends the data along the time axis.
+
+        :param other: Another Transient Spectrum to be added
+        :return: New TransientSpectrum instance
+        """
         if not isinstance(other, TransientSpectrum):
             raise ValueError("Can only concatenate TransientSpectrum with another instance of TransientSpectrum!")
 
@@ -193,8 +213,8 @@ class TransientSpectrum(AbstractSpectrum):
         self.orient_data('x')
         other.orient_data('x')
 
-        t = np.concatenate((self.t.array, other.t.array))
-        y = np.concatenate((self.y.array, other.y.array), axis=1)
+        t: np.ndarray = np.concatenate((self.t.array, other.t.array))
+        y: np.ndarray = np.concatenate((self.y.array, other.y.array), axis=1)
 
         spec = TransientSpectrum(self.x, t, y, self._x_axis.unit, self._t_axis.unit, self._data.unit)
 
@@ -252,31 +272,29 @@ class TransientSpectrum(AbstractSpectrum):
 
         return pre_scan
 
-    def truncate_to(self, x_range=None, t_range=None, inplace=True):
-        data = self._inplace(inplace)
-
+    @inPlaceOp
+    def truncate_to(self, x_range=None, t_range=None):
         if x_range is not None:
-            data.orient_data('x')
+            self.orient_data('x')
             x_range = [self.x.closest_to(x)[0] for x in x_range]
-            data.x, data.y = data._truncate_one_dimension(x_range, data.x)
+            self.x, self.y = self._truncate_one_dimension(x_range, self.x)
         if t_range is not None:
-            data.orient_data('t')
+            self.orient_data('t')
             t_range = [self.t.closest_to(t)[0] for t in t_range]
-            data.t, data.y = data._truncate_one_dimension(t_range, data.t)
+            self.t, self.y = self._truncate_one_dimension(t_range, self.t)
 
-        return data
+        return self
 
-    def truncate_like(self, x_array=None, t_array=None, inplace=True):
-        data = self._inplace(inplace)
-
+    @inPlaceOp
+    def truncate_like(self, x_array=None, t_array=None):
         if x_array is not None:
-            data.orient_data('x')
-            data.x, data.y = data._truncate_like_array_one_dimension(x_array, data.x)
+            self.orient_data('x')
+            self.x, self.y = self._truncate_like_array_one_dimension(x_array, self.x)
         if t_array is not None:
-            data.orient_data('t')
-            data.t, data.y = data._truncate_like_array_one_dimension(t_array, data.t)
+            self.orient_data('t')
+            self.t, self.y = self._truncate_like_array_one_dimension(t_array, self.t)
 
-        return data
+        return self
 
     def orient_data(self, direction='x'):
         if direction == 'x':
@@ -292,7 +310,8 @@ class TransientSpectrum(AbstractSpectrum):
 
         return self
 
-    def eliminate_positions(self, x_pos=None, t_pos=None):
+    @inPlaceOp
+    def eliminate_positions(self, x_pos: float or None = None, t_pos: float or None = None):
         if x_pos is not None:
             x_pos = [self.x.closest_to(x)[0] for x in x_pos]
         if t_pos is not None:
@@ -300,7 +319,8 @@ class TransientSpectrum(AbstractSpectrum):
 
         return self.eliminate_idx(x_idx=x_pos, t_idx=t_pos)
 
-    def eliminate_idx(self, x_idx=None, t_idx=None):
+    @inPlaceOp
+    def eliminate_idx(self, x_idx: int or None = None, t_idx: int or None = None):
         if x_idx is not None:
             self.orient_data('x')
             self.x, self.y = self._eliminate_pos_1d(self.x, x_idx)
