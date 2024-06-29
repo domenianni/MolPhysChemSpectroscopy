@@ -73,6 +73,20 @@ class Spectrum(AbstractSpectrum):
 
         self._check_dimensions()
 
+    def __add__(self, other):
+        return self.append(other)
+
+    def append(self, other):
+        if not isinstance(other, Spectrum):
+            raise ValueError("Can only concatenate Spectrum with another instance of Spectrum!")
+
+        x = np.concatenate((self.x.array, other.x.array))
+        y = np.concatenate((self.y.array, other.y.array))
+
+        spec = Spectrum(x, y, self._x_axis.unit, self._data.unit, time=None)
+
+        return spec
+
     @property
     def time(self):
         """
