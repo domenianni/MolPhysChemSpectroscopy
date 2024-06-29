@@ -41,6 +41,10 @@ class ImportTimeResolvedBase:
         self._file_list = file_list
         self._ignore = ()
 
+    @property
+    def data(self):
+        return self._data_list
+
     def __getitem__(self, item):
         return self._data_list[item]
 
@@ -94,6 +98,8 @@ class ImportTimeResolvedBase:
         self._orient_all_data('t')
         self.convert_all_to(dimension)
 
+        baselines = []
+
         for data in self._data_list:
             if baseline_type == 'static':
                 bsl = Baseline(data).static_baseline(region, t_region=t_region)
@@ -105,9 +111,11 @@ class ImportTimeResolvedBase:
                 bsl = Baseline(data).linear_baseline(regions=region)
                 data.y -= bsl.y
 
-        return self
+            baselines.append(bsl)
 
-    def cross_correlate(self, reference_idx=0, par=True, parameter: dict={}):
+        return baselines
+
+    def cross_correlate(self, reference_idx=0, par=True, **kwargs):
         """
         Cross-correlates all data sets onto the first.
         """
@@ -123,7 +131,7 @@ class ImportTimeResolvedBase:
                 for idx, data in enumerate(self._data_list):
                     if idx == reference_idx:
                         continue
-                    cca_ftr.append(executor.submit(cca, data, self._data_list[reference_idx], **parameter))
+                    cca_ftr.append(executor.submit(cca, data, self._data_list[reference_idx], **kwargs))
                     # cca_ftr.append(executor.submit(cca.correlate_from, self._data_list[reference_idx], data, parameter))
 
             for idx in range(len(self._data_list)):
@@ -140,7 +148,7 @@ class ImportTimeResolvedBase:
                 if idx == reference_idx:
                     continue
 
-                self._data_list[idx] = cca(data, self._data_list[reference_idx], **parameter).result
+                self._data_list[idx] = cca(data, self._data_list[reference_idx], **kwargs).result
                 # self._data_list[idx] = cca.correlate_from(self._data_list[reference_idx], data, parameter)[0]
 
         return self
