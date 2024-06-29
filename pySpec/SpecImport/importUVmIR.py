@@ -55,11 +55,30 @@ class ImportUVmIR(ImportTimeResolvedBase):
             # self._pre_scans.append(data.spectrum[idx])
             # data.y = data.y.array - np.tile(self._pre_scans[-1].y.array, (len(data.t), 1)).T
 
-    def correct_stitch(self):
-        for data in self._data_list:
-            stitchCorr(data.x.array, data.t.array, data.y.array, 4, False)
+    def correct_stitch(self, block_amount: int = 4, reference: int = None,
+                       is_asymmetric: bool = False, is_linear: bool = False):
+        # For some weird reason, the linear stitching correction does not work when the stitching blocks have been
+        # sorted...
+        # For now: Always sort, except when a linear correction is requested.
+        sort = True
+        if is_linear:
+            sort = False
 
-            data.sort()
+        if reference is None:
+            reference = -1
+
+        for data in self._data_list:
+            if sort:
+                data.sort()
+
+            stitchCorr(data.x.array,
+                       data.t.array,
+                       data.y.array,
+                       block_amount,
+                       reference,
+                       sort,
+                       is_asymmetric,
+                       is_linear)
 
         return self
 
