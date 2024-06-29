@@ -1,1 +1,1 @@
-from .stitchCorr import stitchCorr, stitchCorrFunc
+from .stitchCorr import stitchCorr
