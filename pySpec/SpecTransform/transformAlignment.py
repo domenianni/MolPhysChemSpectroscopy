@@ -26,7 +26,7 @@ from ..SpecCore import *
 
 class CrossCorrelationAlignment:
 
-    __parameter = {
+    __DEFAULT_PARAMS = {
         'x_range': [0, 10000],  # just magic numbers for now
         't_range': [0, 20],     # just magic numbers for now
         'supersampling': 4,
@@ -48,6 +48,7 @@ class CrossCorrelationAlignment:
         return self._result
 
     def __init__(self, target: TransientSpectrum, reference: TransientSpectrum, **kwargs):
+        self.__parameter = deepcopy(self.__DEFAULT_PARAMS)
         self.__parameter |= kwargs
 
         self._target = deepcopy(target)
@@ -62,14 +63,14 @@ class CrossCorrelationAlignment:
         self._target.sort()
         self._target.orient_data('x')
 
-        self._target.x = self._reference.x.convert_to('wl')
+        self._reference.x = self._reference.x.convert_to('wl')
         self._reference.sort()
         self._reference.orient_data('x')
 
         tar_small = self._target.truncate_to(x_range=self.__parameter.get('x_range'),
                                              t_range=self.__parameter.get('t_range'),
                                              inplace=False)
-        ref_small = self._target.truncate_to(x_range=self.__parameter.get('x_range'),
+        ref_small = self._reference.truncate_to(x_range=self.__parameter.get('x_range'),
                                              t_range=self.__parameter.get('t_range'),
                                              inplace=False)
 
@@ -102,7 +103,7 @@ class CrossCorrelationAlignment:
 
         y_corr = correlate(y_reference[:, ~index], y_target[:, ~index], method='fft')
 
-        x_corr = correlation_lags(np.shape(y_reference)[1], np.shape(y_target)[1]) * x_val
+        x_corr = correlation_lags(np.shape(y_reference[:, ~index])[1], np.shape(y_target[:, ~index])[1]) * x_val
         t_corr = correlation_lags(np.shape(y_reference)[0], np.shape(y_target)[0]) * t_val
 
         return TransientSpectrum(x_corr, t_corr, y_corr,
@@ -125,8 +126,8 @@ class CrossCorrelationAlignment:
         nan_map = np.zeros_like(y)
         nan_map[np.isnan(y)] = 1
 
-        f = interp2d(x + s_x, t + s_t, np.nan_to_num(y), bounds_error=False, fill_value=float('NaN'), kind='linear')
-        f_nan = interp2d(x + s_x, t + s_t, nan_map, bounds_error=False, fill_value=float('NaN'), kind='linear')
+        f = interp2d(t + s_t, x + s_x, np.nan_to_num(y), bounds_error=False, fill_value=float('NaN'), kind='linear')
+        f_nan = interp2d(t + s_t, x + s_x, nan_map, bounds_error=False, fill_value=float('NaN'), kind='linear')
 
         nan_new = f_nan(self._reference.x.array, self._reference.t.array)
         y_new = f(self._reference.x.array, self._reference.t.array)
