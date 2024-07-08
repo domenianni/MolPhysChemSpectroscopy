@@ -55,15 +55,14 @@ class AbstractAxis(ABC):
         return self.__class__(- self._array, self._unit)
 
     def __add__(self, other):
-        return self.__class__(self._array + other, self._unit)
+        return self.shift_by(other, anchor=None)
 
     __radd__ = __add__
 
     def __sub__(self, other):
-        return self.__class__(self._array - other, self._unit)
+        return self.shift_by(- other, anchor=None)
 
-    def __rsub__(self, other):
-        return self.__class__(other - self._array, self._unit)
+    __rsub__ = __sub__
 
     def __mul__(self, other):
         return self.__class__(self._array * other, self._unit)
@@ -127,7 +126,7 @@ class AbstractAxis(ABC):
         return sorting_mask
 
     @abstractmethod
-    def shift_by(self, amount, anchor):
+    def shift_by(self, amount: float, anchor: float or None):
         """
         Abstract method to shift an axis by a certain amount. Necessary for EnergyAxis, since shifting the axis measured
         with gratings is only linear in the Wavelength domain. Shifts inplace!

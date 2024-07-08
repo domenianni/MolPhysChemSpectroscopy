@@ -40,13 +40,18 @@ class TimeAxis(AbstractAxis):
     ndim = 1
 
     @inPlaceOp
-    def shift_by(self, amount, anchor=None):
+    def shift_by(self, amount: float, anchor: float or None = None):
         """"""
         self._array += amount
 
+        return self
+
+    @inPlaceOp
     def convert_to(self, axis_type=None):
         """"""
         self._array *= 10 ** (self.__magnitude[axis_type] - self.__magnitude[self.unit])
+
+        return self
 
     @classmethod
     def from_file(cls, path, unit='s', sep='\t'):

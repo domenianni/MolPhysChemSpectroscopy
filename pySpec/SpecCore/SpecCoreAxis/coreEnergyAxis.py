@@ -35,7 +35,7 @@ class EnergyAxis(AbstractAxis):
     ndim = 1
 
     @inPlaceOp
-    def shift_by(self, amount: float, anchor: float = None):
+    def shift_by(self, amount: float, anchor: float or None = None):
         """
         :param amount: The amount to shift the axis by.
         :param anchor: The point, which is to be shifted by `amount`. Defaults to the center of the axis.
