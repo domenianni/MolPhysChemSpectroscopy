@@ -42,8 +42,8 @@ class Spectrum(AbstractSpectrum):
     """
 
     def __init__(self,
-                 x_array:    np.ndarray,
-                 data_array: np.ndarray,
+                 x_array:    np.ndarray or AbstractAxis,
+                 data_array: np.ndarray or OneDimensionalData,
                  x_unit:     str  = 'wn',
                  data_unit:  str  = 'od',
                  time:       dict = None):
@@ -73,7 +73,10 @@ class Spectrum(AbstractSpectrum):
 
         self._check_dimensions()
 
-    def __add__(self, other):
+    # def __add__(self, other):
+    #     return self.append(other)
+
+    def __and__(self, other):
         return self.append(other)
 
     def append(self, other):
@@ -83,9 +86,15 @@ class Spectrum(AbstractSpectrum):
         x = np.concatenate((self.x.array, other.x.array))
         y = np.concatenate((self.y.array, other.y.array))
 
-        spec = Spectrum(x, y, self._x_axis.unit, self._data.unit, time=None)
+        return Spectrum(x, y, self._x_axis.unit, self._data.unit, time=None)
 
-        return spec
+    def subtract(self, other: 'Spectrum'):
+        other.interpolate_to(self.x)
+
+        return Spectrum(self.x,
+                        self.y - other.y,
+                        self.x.unit,
+                        self.y.unit)
 
     @property
     def time(self):
