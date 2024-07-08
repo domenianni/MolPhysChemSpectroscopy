@@ -95,6 +95,9 @@ class Calculation(Spectrum):
     def sort(self):
         pass
 
+    def subtract(self, other):
+        raise NotImplementedError()
+
     def save(self, path):
         """
         :param path: The path to save at.
