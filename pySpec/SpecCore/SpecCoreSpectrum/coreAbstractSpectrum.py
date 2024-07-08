@@ -50,6 +50,13 @@ class AbstractSpectrum(ABC):
 
         self._data = data
 
+    def __sub__(self, other):
+        return self.subtract(other)
+
+    @abstractmethod
+    def subtract(self, other):
+        pass
+
     @property
     def y(self):
         """
