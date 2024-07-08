@@ -39,7 +39,20 @@ class ImportTimeResolvedBase:
         """
         self._data_list = data_list
         self._file_list = file_list
-        self._ignore = ()
+        self._ignore: set = set()
+        self._pre_scans: list or None = None
+
+    @property
+    def pre_scans(self):
+        return self._pre_scans
+
+    def subtract_prescans(self, until_time, from_time=None):
+        self._orient_all_data('x')
+        self._pre_scans = []
+
+        for data in self._data_list:
+            data.subtract_prescans(until_time, from_time)
+            self._pre_scans.append(data.pre_scan)
 
     @property
     def data(self):
@@ -110,6 +123,8 @@ class ImportTimeResolvedBase:
             elif baseline_type == 'linear':
                 bsl = Baseline(data).linear_baseline(regions=region)
                 data.y -= bsl.y
+            else:
+                raise ValueError("baseline_type has to be either of 'static', 'one-point' or 'linear'!")
 
             baselines.append(bsl)
 
@@ -117,7 +132,7 @@ class ImportTimeResolvedBase:
 
     def cross_correlate(self, reference_idx=0, par=True, **kwargs):
         """
-        Cross-correlates all data sets onto the first.
+        Cross-correlates all data sets onto the reference selected with reference_idx.
         """
         assert reference_idx <= len(self._data_list)
 
