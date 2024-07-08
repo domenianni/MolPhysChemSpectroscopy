@@ -75,6 +75,7 @@ class ImportTas(ImportTimeResolvedBase):
                            x_range=[300, 500],
                            t_range = [-2, 2],
                            scaling_factor=1,
+                           method='bfgs',
                            visualize=False):
 
         #  Make sure that x is in units of wavelengths
@@ -102,7 +103,7 @@ class ImportTas(ImportTimeResolvedBase):
         # Fit Sellmeier Equation
         res = opt.minimize(self._target_fn, (-4.397e+03, 7.619e+03),
                            args=(scratch_data.x.array[x_mask], t_offset),
-                           method='bfgs',
+                           method=method,
                            tol=1e-12)
         print(res)
 
