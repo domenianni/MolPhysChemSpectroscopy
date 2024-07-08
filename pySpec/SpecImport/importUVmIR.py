@@ -33,27 +33,8 @@ class ImportUVmIR(ImportTimeResolvedBase):
     def __init__(self, data_list: list[TransientSpectrum]):
         super().__init__(data_list)
 
-        self._pre_scans = None
-
     def __len__(self):
         return len(self._data_list)
-
-    def subtract_prescans(self, until_time, from_time=None):
-        self._orient_all_data('x')
-
-        self._pre_scans = []
-
-        for data in self._data_list:
-            data.subtract_prescans(until_time, from_time)
-            # until_time_idx = data.t.closest_to(until_time)[0]
-            #
-            # from_time_idx = 0
-            # if from_time is not None:
-            #     from_time_idx = data.t.closest_to(from_time)[0]
-            #
-            # idx = slice(from_time_idx, until_time_idx)
-            # self._pre_scans.append(data.spectrum[idx])
-            # data.y = data.y.array - np.tile(self._pre_scans[-1].y.array, (len(data.t), 1)).T
 
     def correct_stitch(self, block_amount: int = 4, reference: int = None,
                        is_asymmetric: bool = False, is_linear: bool = False):
