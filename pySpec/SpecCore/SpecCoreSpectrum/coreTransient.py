@@ -19,6 +19,7 @@ This file is part of pySpec
 from .coreAbstractSpectrum import AbstractSpectrum
 from ..SpecCoreData.coreOneDimensionalData import OneDimensionalData
 from ..SpecCoreAxis.coreTimeAxis import TimeAxis
+from ..coreFunctions import inPlaceOp
 
 import numpy as np
 from scipy.interpolate import interp1d
@@ -27,14 +28,14 @@ from copy import deepcopy
 
 class Transient(AbstractSpectrum):
     """
+    Class representing a temporal evolution at a specific energy position. Usually created from a
+    :class:`TransientSpectrum`-object via its .transient property.
+
     :param t_array:
     :param data_array:
     :param t_unit:
     :param data_unit:
     :param position: Optional. The energy position (in wavenumber/wavelength etc.) for assignment.
-
-    Class representing a temporal evolution at a specific energy position. Usually created from a
-    :class:`TransientSpectrum`-object via its .transient property.
     """
 
     __slots__ = ('_t_axis', '_position')
@@ -76,17 +77,28 @@ class Transient(AbstractSpectrum):
         else:
             raise ValueError(f"array must be of type np.ndarray or TimeAxis, not {type(array)}")
 
+    def subtract(self, other: 'Transient'):
+        other.interpolate_to(self.t)
+
+        return Transient(self.t,
+                         self.y - other.y,
+                         self.t.unit,
+                         self.y.unit)
+
+    @inPlaceOp
     def average(self, width):
         self.t, self.y = self._reductive_average(self.t, width)
 
         return self
 
+    @inPlaceOp
     def sort(self):
         sorting_mask = self._t_axis.sort_array()
         self._data.sort_by(sorting_mask)
 
         return self
 
+    @inPlaceOp
     def interpolate_to(self, array):
         f = interp1d(self.t, np.nan_to_num(self.y), bounds_error=False, fill_value=np.nan)
 
@@ -103,34 +115,36 @@ class Transient(AbstractSpectrum):
 
         return self
 
+    @inPlaceOp
     def eliminate_idx(self, t_idx=None):
         if t_idx is not None:
             self.t, self.y = self._eliminate_pos_1d(self.t, t_idx)
 
         return self
 
+    @inPlaceOp
     def eliminate_repetition(self):
         self.t, self.y = self._eliminate_repetition_1d(self.t)
 
         return self
 
-    def truncate_to(self, t_range=None, inplace=True):
-        data = self._inplace(inplace)
+    @inPlaceOp
+    def truncate_to(self, t_range=None):
 
-# TODO: IMPLEMENT SLICING
+        # TODO: IMPLEMENT SLICING
         t_range = [self.t.closest_to(t)[0] for t in t_range]
-        data.t, data.y = self._truncate_one_dimension(t_range, data.t)
+        self.t, self.y = self._truncate_one_dimension(t_range, self.t)
 
-        return data
+        return self
 
-    def truncate_like(self, array=None, inplace=True):
-        data = self._inplace(inplace)
+    @inPlaceOp
+    def truncate_like(self, array=None):
 
         if array is not None:
-            data.orient_data('x')
-            data.x, data.y = data._truncate_like_array_one_dimension(array, data.x)
+            self.orient_data('x')
+            self.x, self.y = self._truncate_like_array_one_dimension(array, self.x)
 
-        return data
+        return self
 
     def _check_dimensions(self):
         if not self._data.length == len(self._t_axis):
