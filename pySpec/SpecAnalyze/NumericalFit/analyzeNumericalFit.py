@@ -13,7 +13,7 @@ from copy import deepcopy
 
 class NumericalFit:
 
-    __method = 'leastsq'
+    __method = 'nelder'
 
     __fntypes = {
         'fall': ExponentialFall,
@@ -110,12 +110,18 @@ class NumericalFit:
                                                 nan_policy='omit',
                                                 method=self.__method)
 
-    def save(self, path: str = "./"):
+    def save(self, path: str = "./", print_params: bool = True, print_report: bool = True):
         if self._result is None:
             raise ValueError("No Result present!")
 
-        with open(path + f"{self._data.position['value']:.1f}_{self._data.position['unit']}_fit_report.txt", 'w') as file:
-            file.write(self._result.fit_report())
+        if print_report:
+            with open(path + f"{self._data.position['value']:.1f}_{self._data.position['unit']}_fit_report.txt", 'w') as file:
+                file.write(self._result.fit_report())
+
+        if print_params:
+            with open(path + f"{self._data.position['value']:.1f}_{self._data.position['unit']}_params.txt", 'w') as file:
+                for key, value in self._result.params.valuesdict():
+                    file.write(f"{key:12} = {value:10.4f}\n")
 
         self.fit.save(path + f"{self._data.position['value']:.1f}_{self._data.position['unit']}_fit_function.dat")
 
