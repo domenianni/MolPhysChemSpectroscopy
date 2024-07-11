@@ -17,7 +17,7 @@ This file is part of pySpec
 """
 
 import numpy as np
-from scipy.interpolate import interp2d
+from scipy.interpolate import interp2d, LinearNDInterpolator
 from scipy.signal import correlate, correlation_lags
 from copy import deepcopy
 
@@ -129,8 +129,8 @@ class CrossCorrelationAlignment:
         f = interp2d(t + s_t, x + s_x, np.nan_to_num(y), bounds_error=False, fill_value=float('NaN'), kind='linear')
         f_nan = interp2d(t + s_t, x + s_x, nan_map, bounds_error=False, fill_value=float('NaN'), kind='linear')
 
-        nan_new = f_nan(self._reference.x.array, self._reference.t.array)
-        y_new = f(self._reference.x.array, self._reference.t.array)
+        nan_new = f_nan(self._reference.t.array, self._reference.x.array)
+        y_new = f(self._reference.t.array, self._reference.x.array)
         y_new[nan_new > 0.5] = float('NaN')
 
         return TransientSpectrum(self._reference.x,
