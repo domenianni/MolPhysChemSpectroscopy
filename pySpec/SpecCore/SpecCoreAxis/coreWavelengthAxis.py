@@ -22,12 +22,11 @@ from ..coreFunctions import inPlaceOp
 
 class WavelengthAxis(AbstractAxis):
 
-    @inPlaceOp
     def shift_by(self, amount: float, anchor: None = None):
         """"""
-        self._array = self._array + amount
-
-        return self
+        # Has to return only an array, if used in conjunction with Operator+ and assignment into a property for some
+        # inexplicable reason
+        return self._array + amount
 
     def convert_to(self, axis_type: str = None):
         """

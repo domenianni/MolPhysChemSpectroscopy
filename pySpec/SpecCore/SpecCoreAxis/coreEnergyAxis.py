@@ -34,7 +34,6 @@ class EnergyAxis(AbstractAxis):
 
     ndim = 1
 
-    @inPlaceOp
     def shift_by(self, amount: float, anchor: float or None = None):
         """
         :param amount: The amount to shift the axis by.
@@ -52,9 +51,9 @@ class EnergyAxis(AbstractAxis):
         x_temp = np.divide(1, self._array)
         x_temp += diff
 
-        self._array = np.divide(1, x_temp)
-
-        return self
+        # Has to return only an array, if used in conjunction with Operator+ and assignment into a property for some
+        # inexplicable reason
+        return np.divide(1, x_temp)
 
     def convert_to(self, axis_type: str = None):
         """

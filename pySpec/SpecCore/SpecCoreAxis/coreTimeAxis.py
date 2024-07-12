@@ -39,12 +39,11 @@ class TimeAxis(AbstractAxis):
 
     ndim = 1
 
-    @inPlaceOp
     def shift_by(self, amount: float, anchor: float or None = None):
         """"""
-        self._array += amount
-
-        return self
+        # Has to return only an array, if used in conjunction with Operator+ and assignment into a property for some
+        # inexplicable reason
+        return self._array + amount
 
     @inPlaceOp
     def convert_to(self, axis_type=None):

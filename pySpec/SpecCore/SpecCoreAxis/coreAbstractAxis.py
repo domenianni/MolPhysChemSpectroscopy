@@ -55,11 +55,15 @@ class AbstractAxis(ABC):
         return self.__class__(- self._array, self._unit)
 
     def __add__(self, other):
+        # Has to return only an array, if used in conjunction with Operator+ and assignment into a property for some
+        # inexplicable reason
         return self.shift_by(other, anchor=None)
 
     __radd__ = __add__
 
     def __sub__(self, other):
+        # Has to return only an array, if used in conjunction with Operator+ and assignment into a property for some
+        # inexplicable reason
         return self.shift_by(- other, anchor=None)
 
     __rsub__ = __sub__
