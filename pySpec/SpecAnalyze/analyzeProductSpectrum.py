@@ -77,7 +77,7 @@ class ProductSpectrum(TransientSpectrum):
         self._shift = value
 
         self._transient_data = deepcopy(self._backup['transient_data'])
-        self._transient_data.x.shift_by(self._shift)
+        self._transient_data.x += self._shift
         self.y = self._calculate_product()
 
     @property
@@ -87,18 +87,6 @@ class ProductSpectrum(TransientSpectrum):
     @property
     def static_data(self):
         return self._static_data
-
-    # @property
-    # def product(self):
-    #     add_data = deepcopy(self._static_data)
-    #     add_data.interpolate_to(self._transient_data.x)
-    #
-    #     return TransientSpectrum(self._transient_data.x,
-    #                              self._transient_data.t,
-    #                              self._transient_data.y + add_data.y,
-    #                              self._transient_data.x.unit,
-    #                              self._transient_data.t.unit,
-    #                              'ddod')
 
     def __init__(self,
                  transient_data: TransientSpectrum,
@@ -124,16 +112,6 @@ class ProductSpectrum(TransientSpectrum):
             self._transient_data.t.unit,
             'ddod'
         )
-
-    #@staticmethod
-    # def convolve_gaussian(x: np.ndarray, y: np.ndarray, fwhm: float) -> np.ndarray:
-    #     x_gauss = x - np.mean(x)
-    #     y_gauss = gaussian(x_gauss, 1, 0, fwhm)
-    #     norm = trapezoid(np.nan_to_num(y), x)
-    #     y = convolve(np.nan_to_num(y), y_gauss, mode='same')
-    #     y *= norm / trapezoid(np.nan_to_num(y), x)
-    #
-    #     return y
 
     def _calculate_product(self):
         return self._transient_data.y + self._static_data.interpolate_to(self._transient_data.x, inplace=False).y
