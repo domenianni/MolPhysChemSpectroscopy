@@ -39,13 +39,11 @@ class CrossCorrelationAlignment:
 
     @property
     def shift_vector(self):
-        offset = np.unravel_index(np.argmax(self._correlation_matrix.y.array), self._correlation_matrix.y.shape)
-
-        return {'x': self._correlation_matrix.x[offset[1]], 't': self._correlation_matrix.t[offset[0]]}
+        return self._shift_vector
 
     @property
-    def result(self):
-        return self._result
+    def target(self):
+        return self._target
 
     def __init__(self, target: TransientSpectrum, reference: TransientSpectrum, **kwargs):
         self.__parameter = deepcopy(self.__DEFAULT_PARAMS)
@@ -55,8 +53,10 @@ class CrossCorrelationAlignment:
         self._reference = deepcopy(reference)
 
         self._correlation_matrix = self._cross_correlate()
+        self._shift_vector = self._calculate_shift_vector()
 
-        self._result = self._shift_data()
+        #self._result = self._shift_data()
+        #self._shift_axes()
 
     def _prepare_data(self):
         self._target.x = self._target.x.convert_to('wl')
@@ -111,7 +111,28 @@ class CrossCorrelationAlignment:
                                  t_unit=reference_small.t.unit,
                                  data_unit=reference_small.y.unit)
 
+    def _calculate_shift_vector(self):
+        offset = np.unravel_index(np.argmax(self._correlation_matrix.y.array), self._correlation_matrix.y.shape)
+
+        s_t = self._check_shift(self._correlation_matrix.t[offset[0]], self._target.t.array)
+        s_x = self._check_shift(self._correlation_matrix.x[offset[1]], self._target.x.array)
+        print(f'Data is shifted by x = {s_x} nm and y = {s_t} time!')
+
+        return {'x': self._correlation_matrix.x[offset[1]], 't': self._correlation_matrix.t[offset[0]]}
+
+    def _shift_axes(self):
+        raise DeprecationWarning()
+
+        s_t = self._check_shift(self.shift_vector['t'], self._target.t.array)
+        s_x = self._check_shift(self.shift_vector['x'], self._target.x.array)
+        print(f'Data is shifted by x = {s_x} nm and y = {s_t} time!')
+
+        self._target.t += s_t
+        self._target.x += s_x
+
     def _shift_data(self):
+        raise DeprecationWarning()
+
         x = self._target.x.array
         t = self._target.t.array
         y = self._target.y.array
