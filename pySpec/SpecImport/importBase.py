@@ -28,7 +28,7 @@ from multiprocessing import cpu_count
 class ImportTimeResolvedBase:
     """Base class for import and pre-processing of the different time-resolved experiments. Acts on a list of
     :class:`TransientSpectrum`, aka data-sets by modifying them individually/ with respect to each other and finally
-    averaged via the `average`-property. Subclasses can implement classmethods to implement a file-parser and to create
+    averaged via the `average`-property. Subclasses can implement class methods to implement a file-parser and to create
     the necessary `TransientSpectrum`-Objects. This class also supports indexing to access the individual
     data sets."""
 
@@ -37,8 +37,8 @@ class ImportTimeResolvedBase:
         :param data_list: The list of data sets to process.
         :param file_list: A list of file-names associated with the data sets. Utilized for time-axis assignment.
         """
-        self._data_list = data_list
-        self._file_list = file_list
+        self._data_list: list = data_list
+        self._file_list: list = file_list
         self._ignore: set = set()
         self._pre_scans: list or None = None
 
@@ -81,12 +81,15 @@ class ImportTimeResolvedBase:
 
         return self
 
-    def interpolate_all(self):
+    def interpolate_all(self, reference: int = 0):
         """
         Interpolates all data sets in both x- and t-directions.
         """
-        for data in self._data_list[1:]:
-            data.interpolate_to(self._data_list[0].x, self._data_list[0].t, inplace=False)
+        for i, data in enumerate(self._data_list):
+            if i == reference:
+                continue
+
+            data.interpolate_to(self._data_list[reference].x, self._data_list[reference].t)
 
         return self
 
@@ -120,7 +123,7 @@ class ImportTimeResolvedBase:
             elif baseline_type == 'one-point':
                 bsl = Baseline(data).one_point_baseline(x_region=region, t_region=t_region)
                 data.y -= bsl
-            elif baseline_type == 'linear':
+            elif baseline_type == 'linear': # WHY DOES THIS NOT WORK?????? TODO
                 bsl = Baseline(data).linear_baseline(regions=region)
                 data.y -= bsl.y
             else:
@@ -153,17 +156,22 @@ class ImportTimeResolvedBase:
                 if idx == reference_idx:
                     continue
 
-                f = cca_ftr.pop(0)
+                cc = cca_ftr.pop(0).result()
 
-                self._data_list[idx] = f.result().result
-                # self._data_list[idx] = f.result()[0]
+                data = self._data_list[idx]
+                data.t = data.t + cc.shift_vector['t']
+                data.x = data.x + cc.shift_vector['x']
 
         else:
-            for idx, data in enumerate(self._data_list):
+            for idx in range(len(self._data_list)):
                 if idx == reference_idx:
                     continue
 
-                self._data_list[idx] = cca(data, self._data_list[reference_idx], **kwargs).result
+                data = self._data_list[idx]
+
+                cc = cca(data, self._data_list[reference_idx], **kwargs)
+                data.t = data.t + cc.shift_vector['t']
+                data.x = data.x + cc.shift_vector['x']
                 # self._data_list[idx] = cca.correlate_from(self._data_list[reference_idx], data, parameter)[0]
 
         return self
