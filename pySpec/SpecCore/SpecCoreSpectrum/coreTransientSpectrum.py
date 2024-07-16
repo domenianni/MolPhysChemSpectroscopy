@@ -340,6 +340,26 @@ class TransientSpectrum(AbstractSpectrum):
 
         return self
 
+    @inPlaceOp
+    def correct_delay_drift(self, offset_end: float, time_zero: float = 0, time_end: float | None = None):
+        self.orient_data('x')
+
+        if time_end is None:
+            time_end = np.max(self.t.array)
+
+        slope = offset_end / (self.t.closest_to(time_end)[1] - self.t.closest_to(time_zero)[1])
+
+        data_y = []
+        for idx in range(len(self.t)):
+            step: Spectrum = self.spectrum[idx]
+
+            step.x += self.t[idx] * slope
+            step.interpolate_to(self.x)
+
+            data_y.append(step.y.array.copy())
+
+        self.y = np.array(data_y)
+
     def _check_dimensions(self):
         if not (len(self._x_axis), len(self._t_axis)) == self._data.shape \
                 and not (len(self._x_axis), len(self._t_axis)) == self._data.shape[::-1]:
