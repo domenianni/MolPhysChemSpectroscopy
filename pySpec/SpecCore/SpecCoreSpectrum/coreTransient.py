@@ -22,7 +22,6 @@ from ..SpecCoreAxis.coreTimeAxis import TimeAxis
 from ..coreFunctions import inPlaceOp
 
 import numpy as np
-from scipy.interpolate import interp1d
 from copy import deepcopy
 
 
@@ -99,14 +98,16 @@ class Transient(AbstractSpectrum):
         return self
 
     @inPlaceOp
-    def interpolate_to(self, array):
-        f = interp1d(self.t, np.nan_to_num(self.y), bounds_error=False, fill_value=np.nan)
+    def interpolate_to(self, t_axis):
+        if not np.all(np.diff(self._t_axis.array) > 0):
+            raise ValueError("t-Axis not sorted for interpolation!")
 
-        if array is None:
-            array = self.t
-
-        self.y = f(array)
-        self.t = array
+        if isinstance(t_axis, type(self._t_axis)):
+            self.y = np.interp(t_axis.array, self._t_axis.array, np.nan_to_num(self.y), left=np.nan, right=np.nan)
+        elif isinstance(t_axis, np.ndarray):
+            self.y = np.interp(t_axis, self._t_axis.array, np.nan_to_num(self.y), left=np.nan, right=np.nan)
+        else:
+            raise ValueError(f"array must be of type EnergyAxis or WavelengthAxis, or be a np.ndarray, not {type(t_axis)}")
 
         return self
 
