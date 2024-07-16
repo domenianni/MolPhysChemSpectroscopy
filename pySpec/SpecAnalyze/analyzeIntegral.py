@@ -1,6 +1,5 @@
 import numpy as np
 from scipy.integrate import trapezoid
-from scipy.interpolate import interp1d
 
 from ..SpecCore.SpecCoreSpectrum.coreTransientSpectrum import TransientSpectrum
 
