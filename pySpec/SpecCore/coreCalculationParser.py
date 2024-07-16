@@ -79,7 +79,7 @@ class CalculationParser:
                 self._params = self.__IR
             pos, ins = self._read_file_orca()
         else:
-            if re.search('# Excitation spectrum', open(self.__file, 'r').read()):
+            if re.search('# Excitation spectrum', open(self._file, 'r').read()):
                 self._params = self.__TM_UV
             else:
                 self._params = self.__TM_IR
