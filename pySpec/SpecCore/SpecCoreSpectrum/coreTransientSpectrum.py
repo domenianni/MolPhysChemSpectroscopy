@@ -265,10 +265,12 @@ class TransientSpectrum(AbstractSpectrum):
 
     @inPlaceOp
     def subtract_prescans(self, until_time, from_time=None):
+        self.sort()
+
         if self._pre_scan is not None:
             raise AttributeError("PreScans cannot be subtracted twice!")
 
-        self.orient_data('x')
+        self.orient_data('t')
         until_time_idx = self.t.closest_to(until_time)[0]
 
         from_time_idx = 0
@@ -277,7 +279,7 @@ class TransientSpectrum(AbstractSpectrum):
 
         idx = slice(from_time_idx, until_time_idx)
         self._pre_scan = self.spectrum[idx]
-        self.y = self.y.array - np.tile(self._pre_scan.y.array, (len(self.t), 1)).T
+        self.y = self._data.array - self._pre_scan.y.array
 
         return self
 
