@@ -20,7 +20,6 @@ import numpy as np
 from scipy.special import erf
 from scipy.signal import convolve
 from functools import cache
-from scipy.interpolate import interp1d
 
 def wl_wn(x):
     return 1e7 / x
@@ -59,8 +58,7 @@ def voigt(nu, s0, nu0, fwhm_gauss=10, fwhm_lorentz=10):
 
     conv = convolve(gauss, lorentz, mode='same')
 
-    voigt = interp1d(xnew + mean, conv)
-    return voigt(nu)
+    return np.interp(nu, xnew + mean, conv)
 
 
 if __name__ == '__main__':
