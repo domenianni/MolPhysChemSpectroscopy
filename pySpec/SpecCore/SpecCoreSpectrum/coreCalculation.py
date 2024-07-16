@@ -78,22 +78,23 @@ class Calculation(Spectrum):
     @property
     def y(self):
         if self._recalculate:
-            self.y = self._calc_envelope(self.x)
+            self._data.array = self._calc_envelope(self._x_axis.array)
             self._recalculate = False
         return self._data
 
     @y.setter
     def y(self, array: np.ndarray):
-        if not isinstance(array, np.ndarray) and not isinstance(array, AbstractData):
-            raise ValueError(f"data can only be ndarray or AbstractData but is {type(array)}!")
-
-        if isinstance(array, AbstractData):
-            self._data = deepcopy(array)
-        else:
-            self._data.array = array.copy()
+        raise NotImplementedError()
+        # if not isinstance(array, np.ndarray) and not isinstance(array, AbstractData):
+        #     raise ValueError(f"data can only be ndarray or AbstractData but is {type(array)}!")
+        #
+        # if isinstance(array, AbstractData):
+        #     self._data = deepcopy(array)
+        # else:
+        #     self._data.array = array.copy()
 
     def sort(self):
-        pass
+        raise NotImplementedError()
 
     def subtract(self, other):
         raise NotImplementedError()
@@ -120,16 +121,16 @@ class Calculation(Spectrum):
         return self
 
     def eliminate_repetition(self):
-        pass
+        raise NotImplementedError()
 
     @classmethod
-    def from_file(cls, path, params=None):
-        if params is None:
-            params = {'lineshape': 'lorentz'}
+    def from_file(cls, path, **kwargs):
+        if kwargs.get('lineshape') is None:
+            kwargs['lineshape'] = 'lorentz'
 
         file = CalculationParser(path)
 
-        return cls(file.pos, file.int, file.x_unit, file.y_unit, calc_type=file.calc_type, **params)
+        return cls(file.pos, file.int, file.x_unit, file.y_unit, calc_type=file.calc_type, **kwargs)
 
     def __init__(self,
                  positions:     np.ndarray,
@@ -137,10 +138,12 @@ class Calculation(Spectrum):
                  pos_unit:      str = 'wn',
                  int_unit:      str = 'f_osc',
                  calc_type:     str = 'ir',
-                 lineshape:     str = 'lorentz'):
+                 lineshape:     str = 'lorentz',
+                 **kwargs):
 
         self._int_axis = OneDimensionalData(intensities, int_unit)
         self._lineshape_params = self.__ENVELOPE.get(lineshape).copy()
+        self._lineshape_params.update(kwargs)
         self._lineshape = lineshape
         self._recalculate = False
 
@@ -163,7 +166,7 @@ class Calculation(Spectrum):
         y = self._calc_envelope(x)
         super().__init__(x, y, x_unit=pos_unit, data_unit=int_unit)
 
-    def _calc_envelope(self, x):
+    def _calc_envelope(self, x: np.ndarray):
         shape = self._calc_lineshape()
 
         envelope = np.zeros_like(x)
