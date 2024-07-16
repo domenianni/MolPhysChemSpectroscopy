@@ -25,7 +25,6 @@ from ..coreFunctions import inPlaceOp
 from copy import deepcopy
 
 import numpy as np
-from scipy.interpolate import interp1d
 
 
 class Spectrum(AbstractSpectrum):
@@ -72,11 +71,12 @@ class Spectrum(AbstractSpectrum):
         self._time = time
 
         self._check_dimensions()
+        self.sort()
 
     # def __add__(self, other):
     #     return self.append(other)
 
-    def __and__(self, other):
+    def __or__(self, other):
         return self.append(other)
 
     def append(self, other):
@@ -151,12 +151,13 @@ class Spectrum(AbstractSpectrum):
         out-of-bounds of the old x-axis all missing values are set as `np.nan`.
         """
 
-        f = interp1d(self.x, np.nan_to_num(self.y), bounds_error=False, fill_value=np.nan)
+        if not np.all(np.diff(self._x_axis.array) > 0):
+            raise ValueError("X-Axis not sorted for interpolation!")
 
-        if isinstance(x_axis, EnergyAxis) and not isinstance(x_axis, WavelengthAxis):
-            self.y = f(x_axis.array)
+        if isinstance(x_axis, type(self._x_axis)):
+            self.y = np.interp(x_axis.array, self._x_axis.array, np.nan_to_num(self.y), left=np.nan, right=np.nan)
         elif isinstance(x_axis, np.ndarray):
-            self.y = f(x_axis)
+            self.y = np.interp(x_axis, self._x_axis.array, np.nan_to_num(self.y), left=np.nan, right=np.nan)
         else:
             raise ValueError(f"array must be of type EnergyAxis or WavelengthAxis, or be a np.ndarray, not {type(x_axis)}")
 
@@ -243,43 +244,43 @@ class Spectrum(AbstractSpectrum):
                    )
 
     @staticmethod
-    def from_file(path, parser_args: dict = None):
+    def from_file(path, **kwargs):
         from ..coreParser import Parser
 
         path = Parser.parse_path(path)[0]
 
-        args = {'x_unit': 'wn', 'data_unit': 'od'}
+        if kwargs.get('x_unit') is None:
+            kwargs.update({'x_unit': 'wn'})
+        if kwargs.get('data_unit') is None:
+            kwargs.update({'data_unit': 'od'})
 
-        if isinstance(parser_args, dict):
-            args.update(parser_args)
-
-        return Parser(path, import_type='spectrum', **args)[0]
+        return Parser(path, import_type='spectrum', **kwargs)[0]
 
     @classmethod
-    def average_from_files(cls, path, parser_args: dict = None):
+    def average_from_files(cls, path, **kwargs):
         from ..coreParser import Parser
 
-        args = {'x_unit': 'wn', 'data_unit': 'od'}
+        if kwargs.get('x_unit') is None:
+            kwargs.update({'x_unit': 'wn'})
+        if kwargs.get('data_unit') is None:
+            kwargs.update({'data_unit': 'od'})
 
-        if parser_args is not None:
-            args.update(parser_args)
-
-        spectra = [Parser(p, import_type='spectrum', **args)[0] for p in Parser.parse_path(path)]
+        spectra = [Parser(p, import_type='spectrum', **kwargs)[0] for p in Parser.parse_path(path)]
 
         return cls.average_from(spectra)
 
 
     @classmethod
-    def calculate_from_files(cls, path, solvent_path, parser_args: dict = None):
+    def calculate_from_files(cls, path, solvent_path, **kwargs):
         from ..coreParser import Parser
 
-        args = {'x_unit': 'wn', 'data_unit': 'od'}
+        if kwargs.get('x_unit') is None:
+            kwargs.update({'x_unit': 'wn'})
+        if kwargs.get('data_unit') is None:
+            kwargs.update({'data_unit': 'od'})
 
-        if parser_args is not None:
-            args.update(parser_args)
-
-        parent_spectra = [Parser(p, import_type='spectrum', **args)[0] for p in Parser.parse_path(path)]
-        solvent_spectra = [Parser(p, import_type='spectrum', **args)[0] for p in Parser.parse_path(solvent_path)]
+        parent_spectra = [Parser(p, import_type='spectrum', **kwargs)[0] for p in Parser.parse_path(path)]
+        solvent_spectra = [Parser(p, import_type='spectrum', **kwargs)[0] for p in Parser.parse_path(solvent_path)]
 
         parent = Spectrum.average_from(parent_spectra)
 
