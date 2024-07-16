@@ -182,24 +182,25 @@ class AbstractSpectrum(ABC):
 
     @staticmethod
     def convolve_gaussian(x: np.ndarray, y: np.ndarray, fwhm: float) -> np.ndarray:
-        from scipy.interpolate import interp1d
+        if not np.all(np.diff(x) > 0):
+            raise ValueError("X-Axis not sorted for interpolation!")
 
         OVERSAMPLING = 10
 
         norm = trapezoid(np.nan_to_num(y), x)
 
         x_gauss = np.linspace(np.min(x), np.max(x), OVERSAMPLING * len(x))
-        y_large = interp1d(x, np.nan_to_num(y))(x_gauss)
+        y_large = np.interp(x_gauss, x, np.nan_to_num(y), left=np.nan, right=np.nan)
 
         y_gauss = gaussian(x_gauss - np.mean(x), 1, 0, fwhm)
 
         y_conv = convolve(y_gauss, y_large, mode='same')
 
-        y = interp1d(x_gauss, y_conv)(x)
+        y_new = np.interp(x, x_gauss, y_conv, left=np.nan, right=np.nan)
 
-        y *= norm / trapezoid(np.nan_to_num(y), x)
+        y_new *= norm / trapezoid(np.nan_to_num(y), x)
 
-        return y
+        return y_new
 
     @staticmethod
     @abstractmethod
