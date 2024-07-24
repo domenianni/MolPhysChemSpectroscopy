@@ -94,7 +94,7 @@ class Calculation(Spectrum):
         #     self._data.array = array.copy()
 
     def sort(self):
-        raise NotImplementedError()
+        pass
 
     def subtract(self, other):
         raise NotImplementedError()
