@@ -37,7 +37,25 @@ class TimeAxis(AbstractAxis):
         's': 0
     }
 
+    _label_mapping = {
+        12: r'T',
+        9: r'G',
+        6: r'M',
+        3: r'k',
+        0: r'',
+        -3: r'm',
+        -6: r'\mu ',
+        -9: r'n',
+        -12: r'p',
+        -15: r'f'
+    }
+
     ndim = 1
+
+    @property
+    def label(self):
+        unit = self._label_mapping.get(-self.__magnitude.get(self._unit))
+        return r'Delay / $\mathrm{' + unit + '}$s'
 
     def shift_by(self, amount: float, anchor: float or None = None):
         """"""

@@ -17,6 +17,7 @@ This file is part of pySpec
 """
 
 from abc import ABC, abstractmethod
+from warnings import warn
 
 from ..coreFunctions import inPlaceOp
 
@@ -35,6 +36,18 @@ class AbstractData(ABC):
     """
 
     __slots__ = ('_array', '_unit')
+
+    _label_mapping = {
+        'mdod': r'$\Delta$mOD',
+        'dod':  r'$\Delta$OD',
+        'od':    'OD',
+        'mod':   'mOD',
+        'eps':  r'$\epsilon$ / M$^{-1}$cm$^{-1}$'
+    }
+
+    @property
+    def label(self):
+        return self._label_mapping.get(self._unit)
 
     @property
     def array(self) -> np.ndarray:
@@ -130,8 +143,13 @@ class AbstractData(ABC):
         :param concentration: Concentration of substance in mol/L
         :returns: the extinction coefficients calculated by lambert-beers law.
         """
+        if self._unit == 'eps':
+            warn("Extinction Coefficient has already been calculated!")
+
+        self._unit = 'eps'
 
         self._array = self._array / (layer_thickness * concentration)
+
         return self
 
     @inPlaceOp

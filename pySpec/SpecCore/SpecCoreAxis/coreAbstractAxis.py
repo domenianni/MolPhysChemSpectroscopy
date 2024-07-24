@@ -34,6 +34,15 @@ class AbstractAxis(ABC):
 
     __slots__ = ("_array", "_unit")
 
+    _label_mapping = {
+        'wn': r'Wavenumbers / cm$\mathrm{^{-1}}$',
+        'wl': r'Wavelength / nm'
+    }
+
+    @property
+    def label(self):
+        return self._label_mapping.get(self._unit)
+
     def __init__(self, array: np.ndarray, unit: str):
 
         if len(array.shape) != 1:
