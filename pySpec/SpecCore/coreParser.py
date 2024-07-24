@@ -65,7 +65,8 @@ class Parser:
         '.CSV': ';',
         '.csv': ';',
         '.dat': '\t',
-        '.dpt': '\t'
+        '.dpt': '\t',
+        '.txt': ','
     }
 
     def __init__(self,
@@ -75,6 +76,7 @@ class Parser:
                  t_unit: str      = 's',
                  data_unit: str   = 'od',
                  header: int      = 0,
+                 sep: str | None = None,
                  style: str       = 'eng'):
 
         self.t_unit = t_unit
@@ -86,6 +88,12 @@ class Parser:
         self.data_unit = data_unit
         self.import_type = import_type
         self.file_path = file_path
+
+        self.sep = sep
+        if sep is None:
+            self.sep = self._seperator.get(self.file_path.name[-4:])
+        if self.sep is None:
+            self.sep = ' '
 
         self.file_content = self._read_file()
         self.file_content = self.file_content[header:]
@@ -197,15 +205,11 @@ class Parser:
             first_axis = []
             data = []
 
-            sep = self._seperator.get(self.file_path.name[-4:])
-            if sep is None:
-                sep = ' '
-
             try:
                 for line in string_data:
                     line = line.lstrip()
-                    first_axis.append(float(line.split(sep)[0]))
-                    data.append(float(line.split(sep)[1]))
+                    first_axis.append(float(line.split(self.sep)[0]))
+                    data.append(float(line.split(self.sep)[1]))
 
             except ValueError:
                 for line in string_data:
