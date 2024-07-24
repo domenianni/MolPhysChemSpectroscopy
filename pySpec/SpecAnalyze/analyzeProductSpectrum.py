@@ -18,12 +18,8 @@ This file is part of pySpec
 
 from ..SpecCore.SpecCoreSpectrum.coreTransientSpectrum import TransientSpectrum
 from ..SpecCore.SpecCoreSpectrum.coreSpectrum import Spectrum
-from ..SpecCore.coreLineShapes import gaussian
 
 from copy import deepcopy
-import numpy as np
-from scipy.integrate import trapezoid
-from scipy.signal import convolve
 
 
 class ProductSpectrum(TransientSpectrum):
