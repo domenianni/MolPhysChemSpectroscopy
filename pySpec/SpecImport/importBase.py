@@ -47,7 +47,6 @@ class ImportTimeResolvedBase:
         return self._pre_scans
 
     def subtract_prescans(self, until_time, from_time=None):
-        self._orient_all_data('x')
         self._pre_scans = []
 
         for data in self._data_list:
