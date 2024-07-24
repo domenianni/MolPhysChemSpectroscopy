@@ -16,7 +16,7 @@ This file is part of pySpec
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from scipy.interpolate import interp2d
+from scipy.interpolate import interp2d, RegularGridInterpolator
 import numpy as np
 from copy import deepcopy
 
@@ -51,7 +51,7 @@ class TransientSpectrum(AbstractSpectrum):
                  x_array: np.ndarray or AbstractAxis,
                  t_array: np.ndarray or AbstractAxis,
                  data_array: np.ndarray or TwoDimensionalData,
-                 x_unit='wn', t_unit='s', data_unit='dod'):
+                 x_unit='wn', t_unit='s', data_unit='mdod'):
 
         if isinstance(data_array, np.ndarray):
             super().__init__(TwoDimensionalData(data_array, data_unit))
@@ -82,9 +82,6 @@ class TransientSpectrum(AbstractSpectrum):
 
         self._check_dimensions()
         self._pre_scan = None
-
-    # def __add__(self, other):
-    #     return self.extend(other)
 
     def __and__(self, other):
         return self.extend(other)
@@ -389,14 +386,13 @@ class TransientSpectrum(AbstractSpectrum):
                    spec_list[0].y.unit)
 
     @staticmethod
-    def from_file(path, parser_args: dict = None):
+    def from_file(path, **kwargs):
         from ..coreParser import Parser
 
         path = Parser.parse_path(path)[0]
 
         args = {'import_type': 'x_first', 'x_unit': 'wn', 't_unit': 's', 'data_unit': 'od'}
-        if parser_args is not None:
-            args.update(parser_args)
+        args.update(kwargs)
 
         return Parser(path, **args)[0]
 
