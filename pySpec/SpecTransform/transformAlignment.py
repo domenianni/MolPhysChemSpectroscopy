@@ -55,9 +55,6 @@ class CrossCorrelationAlignment:
         self._correlation_matrix = self._cross_correlate()
         self._shift_vector = self._calculate_shift_vector()
 
-        #self._result = self._shift_data()
-        #self._shift_axes()
-
     def _prepare_data(self):
         self._target.x = self._target.x.convert_to('wl')
         self._target.sort()
@@ -119,47 +116,6 @@ class CrossCorrelationAlignment:
         print(f'Data is shifted by x = {s_x} nm and y = {s_t} time!')
 
         return {'x': self._correlation_matrix.x[offset[1]], 't': self._correlation_matrix.t[offset[0]]}
-
-    def _shift_axes(self):
-        raise DeprecationWarning()
-
-        s_t = self._check_shift(self.shift_vector['t'], self._target.t.array)
-        s_x = self._check_shift(self.shift_vector['x'], self._target.x.array)
-        print(f'Data is shifted by x = {s_x} nm and y = {s_t} time!')
-
-        self._target.t += s_t
-        self._target.x += s_x
-
-    def _shift_data(self):
-        raise DeprecationWarning()
-
-        x = self._target.x.array
-        t = self._target.t.array
-        y = self._target.y.array
-
-        s_t = self._check_shift(self.shift_vector['t'], t)
-        s_x = self._check_shift(self.shift_vector['x'], x)
-        print(f'Data is shifted by x = {s_x} nm and y = {s_t} time!')
-
-        if (s_t == 0) and (s_x == 0):
-            return self._target
-
-        nan_map = np.zeros_like(y)
-        nan_map[np.isnan(y)] = 1
-
-        f = interp2d(t + s_t, x + s_x, np.nan_to_num(y), bounds_error=False, fill_value=float('NaN'), kind='linear')
-        f_nan = interp2d(t + s_t, x + s_x, nan_map, bounds_error=False, fill_value=float('NaN'), kind='linear')
-
-        nan_new = f_nan(self._reference.t.array, self._reference.x.array)
-        y_new = f(self._reference.t.array, self._reference.x.array)
-        y_new[nan_new > 0.5] = float('NaN')
-
-        return TransientSpectrum(self._reference.x,
-                                 self._reference.t,
-                                 y_new,
-                                 self._reference.x.unit,
-                                 self._reference.t.unit,
-                                 self._reference.y.unit)
 
     def _check_shift(self, shift, axis):
         if abs(shift / (axis[-1] - axis[0])) > self.__parameter['threshhold']:
