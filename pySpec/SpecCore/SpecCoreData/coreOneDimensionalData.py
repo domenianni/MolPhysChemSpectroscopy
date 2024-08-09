@@ -33,14 +33,14 @@ class OneDimensionalData(AbstractData):
 
     ndim = 1
 
-    def __init__(self, array, unit):
+    def __init__(self, array: np.ndarray[float], unit: str):
         if len(np.shape(array)) != 1:
             raise TypeError("data_array must have only one dimension!")
 
         super().__init__(array, unit)
 
     @inPlaceOp
-    def sort_by(self, sorting_mask):
+    def sort_by(self, sorting_mask: np.ndarray[int]):
         """
         :param sorting_mask: The mask to sort the data by. The mask must be of the same size as the array and contain
                              the indices to be sorted to.
