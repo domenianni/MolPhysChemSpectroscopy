@@ -41,8 +41,8 @@ class Spectrum(AbstractSpectrum):
     """
 
     def __init__(self,
-                 x_array:    np.ndarray or AbstractAxis,
-                 data_array: np.ndarray or OneDimensionalData,
+                 x_array:    np.ndarray[float] or AbstractAxis,
+                 data_array: np.ndarray[float] or OneDimensionalData,
                  x_unit:     str  = 'wn',
                  data_unit:  str  = 'od',
                  time:       dict = None):
@@ -51,7 +51,7 @@ class Spectrum(AbstractSpectrum):
             raise ValueError("Data Object only accepts one-dimensional arrays.")
 
         if isinstance(data_array, np.ndarray):
-            super().__init__(OneDimensionalData(data_array.copy(), data_unit))
+            super().__init__(OneDimensionalData(data_array, data_unit))
         elif isinstance(data_array, OneDimensionalData):
             super().__init__(deepcopy(data_array))
         else:
@@ -73,13 +73,10 @@ class Spectrum(AbstractSpectrum):
         self._check_dimensions()
         self.sort()
 
-    # def __add__(self, other):
-    #     return self.append(other)
-
     def __or__(self, other):
         return self.append(other)
 
-    def append(self, other):
+    def append(self, other: 'Spectrum') -> 'Spectrum':
         if not isinstance(other, Spectrum):
             raise ValueError("Can only concatenate Spectrum with another instance of Spectrum!")
 
@@ -88,7 +85,7 @@ class Spectrum(AbstractSpectrum):
 
         return Spectrum(x, y, self._x_axis.unit, self._data.unit, time=None)
 
-    def subtract(self, other: 'Spectrum'):
+    def subtract(self, other: 'Spectrum') -> 'Spectrum':
         other.interpolate_to(self.x)
 
         return Spectrum(self.x,
@@ -112,7 +109,7 @@ class Spectrum(AbstractSpectrum):
         return self._x_axis
 
     @x.setter
-    def x(self, array):
+    def x(self, array: np.ndarray[float] or AbstractAxis):
         if isinstance(array, np.ndarray):
             self._x_axis = EnergyAxis(array, self._x_axis.unit)
             return
@@ -130,7 +127,7 @@ class Spectrum(AbstractSpectrum):
 
         Reduces the resolution of the spectrum via reductive averaging inplace.
         """
-        self.x, self.y = self._reductive_average(self.x, x_width)
+        self._x_axis.array, self._data.array = self._reductive_average(self._x_axis.array, x_width)
 
         return self
 
@@ -155,9 +152,9 @@ class Spectrum(AbstractSpectrum):
             raise ValueError("X-Axis not sorted for interpolation!")
 
         if isinstance(x_axis, type(self._x_axis)):
-            self.y = np.interp(x_axis.array, self._x_axis.array, np.nan_to_num(self.y), left=np.nan, right=np.nan)
+            self._data.array = np.interp(x_axis.array, self._x_axis.array, np.nan_to_num(self.y), left=np.nan, right=np.nan)
         elif isinstance(x_axis, np.ndarray):
-            self.y = np.interp(x_axis, self._x_axis.array, np.nan_to_num(self.y), left=np.nan, right=np.nan)
+            self._data.array = np.interp(x_axis, self._x_axis.array, np.nan_to_num(self.y), left=np.nan, right=np.nan)
         else:
             raise ValueError(f"array must be of type EnergyAxis or WavelengthAxis, or be a np.ndarray, not {type(x_axis)}")
 
@@ -173,12 +170,12 @@ class Spectrum(AbstractSpectrum):
         """
 
         x_range = [self.x.closest_to(x)[0] for x in x_range]
-        self.x, self.y = self._truncate_one_dimension(x_range, self.x)
+        self._x_axis.array, self._data.array = self._truncate_one_dimension(x_range, self._x_axis.array)
 
         return self
 
     @inPlaceOp
-    def truncate_like(self, x_array):
+    def truncate_like(self, x_array: np.ndarray[float]):
         """
         :param x_array: Reference to truncate the spectrum to.
         :type x_array: array_like
@@ -186,30 +183,30 @@ class Spectrum(AbstractSpectrum):
 
         Truncate the data according to the supplied `x_array`.
         """
-        self.x, self.y = self._truncate_like_array_one_dimension(x_array, self.x)
+        self._x_axis.array, self._data.array = self._truncate_like_array_one_dimension(x_array, self._x_axis.array)
 
         return self
 
-    def save(self, path):
+    def save(self, path: str):
         """
         :param path: The path to save at.
 
         Saves the spectrum as an ascii-formatted file.
         """
-        self._save_one_dimension(self.x, self.y, path)
+        self._save_one_dimension(self._x_axis.array, self._data.array, path)
 
         return self
 
     @inPlaceOp
     def eliminate_repetition(self):
-        self.x, self.y = self._eliminate_repetition_1d(self.x)
+        self._x_axis.array, self._data.array = self._eliminate_repetition_1d(self._x_axis.array)
 
         return self
 
     @inPlaceOp
-    def eliminate_idx(self, x_idx=None):
+    def eliminate_idx(self, x_idx: list[int] | int | None = None):
         if x_idx is not None:
-            self.x, self.y = self._eliminate_pos_1d(self.x, x_idx)
+            self._x_axis.array, self._data.array = self._eliminate_pos_1d(self._x_axis.array, x_idx)
 
         return self
 
@@ -236,7 +233,7 @@ class Spectrum(AbstractSpectrum):
                    spec_list[0].y.unit)
 
     @classmethod
-    def calculate_from(cls, spec, ref):
+    def calculate_from(cls, spec: 'Spectrum', ref: 'Spectrum') -> 'Spectrum':
         return cls(spec.x,
                    cls.calculate_od(spec.y, ref.y),
                    x_unit=spec.x.unit,
@@ -244,7 +241,7 @@ class Spectrum(AbstractSpectrum):
                    )
 
     @staticmethod
-    def from_file(path, **kwargs):
+    def from_file(path: str, **kwargs) -> 'Spectrum':
         from ..coreParser import Parser
 
         path = Parser.parse_path(path)[0]
@@ -257,7 +254,7 @@ class Spectrum(AbstractSpectrum):
         return Parser(path, import_type='spectrum', **kwargs)[0]
 
     @classmethod
-    def average_from_files(cls, path, **kwargs):
+    def average_from_files(cls, path: str, **kwargs) -> 'Spectrum':
         from ..coreParser import Parser
 
         if kwargs.get('x_unit') is None:
@@ -271,7 +268,7 @@ class Spectrum(AbstractSpectrum):
 
 
     @classmethod
-    def calculate_from_files(cls, path, solvent_path, **kwargs):
+    def calculate_from_files(cls, path: str, solvent_path: str, **kwargs) -> 'Spectrum':
         from ..coreParser import Parser
 
         if kwargs.get('x_unit') is None:
