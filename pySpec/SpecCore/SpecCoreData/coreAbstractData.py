@@ -50,12 +50,12 @@ class AbstractData(ABC):
         return self._label_mapping.get(self._unit)
 
     @property
-    def array(self) -> np.ndarray:
+    def array(self) -> np.ndarray[float]:
         """Returns the underlying numpy-array. Can be set to a new numpy array. This operation does not check sizes!"""
         return self._array
 
     @array.setter
-    def array(self, array: np.ndarray):
+    def array(self, array: np.ndarray[float]):
         if not isinstance(array, np.ndarray):
             raise ValueError(f"array must be of type np.ndarray, not {type(array)}")
 
@@ -76,7 +76,7 @@ class AbstractData(ABC):
         """The shape of the data array."""
         return np.shape(self._array)
 
-    def __init__(self, array: np.ndarray, unit: str):
+    def __init__(self, array: np.ndarray[float], unit: str):
         self._array = array.copy()
         self._unit = unit
 
@@ -137,7 +137,7 @@ class AbstractData(ABC):
         return other
 
     @inPlaceOp
-    def calc_ex_coeff(self, layer_thickness: float, concentration: float) -> np.ndarray:
+    def calc_ex_coeff(self, layer_thickness: float, concentration: float):
         """
         :param layer_thickness: Cell layer thickness in cm
         :param concentration: Concentration of substance in mol/L
@@ -153,7 +153,7 @@ class AbstractData(ABC):
         return self
 
     @inPlaceOp
-    def calc_ex_coeff_mv(self, layer_thickness: float, mass: float, molar_mass: float, volume: float) -> np.ndarray:
+    def calc_ex_coeff_mv(self, layer_thickness: float, mass: float, molar_mass: float, volume: float):
         """
          :param layer_thickness: Cell layer thickness in cm
          :type layer_thickness: float
