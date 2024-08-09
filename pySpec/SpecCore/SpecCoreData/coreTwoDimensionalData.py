@@ -40,7 +40,7 @@ class TwoDimensionalData(AbstractData):
         super().__init__(array, unit)
 
     @inPlaceOp
-    def sort_by(self, sorting_mask: np.ndarray):
+    def sort_by(self, sorting_mask: np.ndarray[int]):
         """
         :param sorting_mask: The mask to sort the data by. The mask must be of the same size and dimensionality as the
                              array and contain the indices to be sorted to.
