@@ -23,6 +23,14 @@ from scipy.integrate import trapezoid
 from scipy.signal import convolve
 
 from ..SpecCoreData.coreAbstractData import AbstractData
+from ..SpecCoreData.coreTwoDimensionalData import TwoDimensionalData
+from ..SpecCoreData.coreOneDimensionalData import OneDimensionalData
+
+from ..SpecCoreAxis.coreAbstractAxis import AbstractAxis
+from ..SpecCoreAxis.coreTimeAxis import TimeAxis
+from ..SpecCoreAxis.coreEnergyAxis import EnergyAxis
+from ..SpecCoreAxis.coreWavelengthAxis import WavelengthAxis
+
 from ..coreLineShapes import gaussian
 
 
@@ -44,11 +52,37 @@ class AbstractSpectrum(ABC):
         - checking the dimensionality of the supplied data/axis aggregate
     """
 
-    def __init__(self, data):
+    def __init__(self, data: AbstractData):
         if not isinstance(data, AbstractData):
             raise ValueError(f"data must be of type AbstractData, not {type(data)}!")
 
         self._data = data
+
+    @staticmethod
+    def _initialize_axis(array: np.ndarray or AbstractAxis, unit: str) -> AbstractAxis:
+        if isinstance(array, np.ndarray):
+            if unit in ('wn', 'ev'):
+                return EnergyAxis(array, unit)
+            elif unit == 'wl':
+                return WavelengthAxis(array, unit)
+            elif unit[-1] == 's':
+                return TimeAxis(array, unit)
+            else:
+                raise ValueError(f"unit has to be 'wn', 'ev', 'wl', or '<T>s' not {unit}")
+        elif isinstance(array, AbstractAxis):
+            return deepcopy(array)
+        else:
+            raise ValueError(f"array has to be of type: np.ndarray or be derived from AbstractAxis, not: {type(array)}")
+
+    @staticmethod
+    def _set_array(array, old_axis) -> AbstractAxis:
+        if isinstance(array, np.ndarray):
+            old_axis.array = array.copy()
+            return old_axis
+        if isinstance(array, WavelengthAxis) or isinstance(array, EnergyAxis):
+            return deepcopy(array)
+
+        raise ValueError(f"array must be of type np.ndarray, not {type(array)}")
 
     def __sub__(self, other):
         return self.subtract(other)
@@ -65,14 +99,14 @@ class AbstractSpectrum(ABC):
         return self._data
 
     @y.setter
-    def y(self, array: np.ndarray):
+    def y(self, array: np.ndarray[float] or AbstractData):
         if not isinstance(array, np.ndarray) and not isinstance(array, AbstractData):
             raise ValueError(f"data can only be ndarray or AbstractData but is {type(array)}!")
 
         if isinstance(array, AbstractData):
             self._data = deepcopy(array)
         else:
-            self._data.array = array.copy()
+            self._data.array = array
 
     @abstractmethod
     def _check_dimensions(self):
@@ -87,7 +121,15 @@ class AbstractSpectrum(ABC):
         pass
 
     @staticmethod
-    def _save_one_dimension(x, y, path):
+    def _save_one_dimension(x: np.ndarray[float], y: np.ndarray[float], path: str) -> None:
+        """
+        :param x: The axis.
+        :param y: Conjoined data values.
+        :param path: Path, including file name and suffix, where to save the data.
+        :return: None
+
+         Internal function to save an axis x and its conjoined values y.
+        """
         with open(path, 'w') as file:
 
             for value in x:
@@ -99,8 +141,8 @@ class AbstractSpectrum(ABC):
                 file.write(f"{value}\t")
 
     @staticmethod
-    def calculate_od(y: np.ndarray,
-                     y_ref: np.ndarray) -> np.ndarray:
+    def calculate_od(y: np.ndarray[float] or float,
+                     y_ref: np.ndarray[float] or float) -> np.ndarray[float] or float:
 
         return - np.log10(np.divide(y, y_ref))
 
@@ -108,18 +150,13 @@ class AbstractSpectrum(ABC):
     def eliminate_repetition(self):
         pass
 
-    def _inplace(self, flag: bool = True):
-        if not flag:
-            return deepcopy(self)
-        return self
-
-    def _eliminate_pos_1d(self, x, idx):
+    def _eliminate_pos_1d(self, x: np.ndarray, idx: list[int] or int) -> (np.ndarray[float], np.ndarray[float]):
         mask = np.ones_like(x, dtype=bool)
         mask[idx] = False
 
-        return x[mask], self.y[mask]
+        return x[mask], self._data.array[mask]
 
-    def _eliminate_repetition_1d(self, x):
+    def _eliminate_repetition_1d(self, x: np.ndarray[float]) -> (np.ndarray[float], np.ndarray[float]):
         pos = []
         mask = [True]
         for i, t in enumerate(x[1:], start=1):
@@ -130,11 +167,12 @@ class AbstractSpectrum(ABC):
                 mask.append(True)
 
         for i in pos:
-            self.y[i - 1] = np.nanmean(self.y[i - 1:i + 1], axis=0)
+            self._data.array[i - 1] = np.nanmean(self._data.array[i - 1:i + 1], axis=0)
 
-        return x[mask], self.y[mask]
+        return x[mask],  self._data.array[mask]
 
-    def _truncate_one_dimension(self, region, x):
+    def _truncate_one_dimension(self, region, x: np.ndarray) -> (np.ndarray[float], np.ndarray[float]):
+        # TODO Should this be split up and use truncation within the axis and data objects?
         """Truncates INCLUSIVELY!!"""
         if all(isinstance(i, list) for i in region):
             x_temp = []
@@ -142,7 +180,7 @@ class AbstractSpectrum(ABC):
 
             for reg in region:
                 x_temp.extend(x[slice(reg[0], reg[1]+1, None)])
-                y_temp.extend(self.y[slice(reg[0], reg[1]+1, None)])
+                y_temp.extend(self._data.array[slice(reg[0], reg[1]+1, None)])
 
             x = np.array(x_temp)
             y = np.array(y_temp)
@@ -150,21 +188,21 @@ class AbstractSpectrum(ABC):
         elif not any(isinstance(i, list) for i in region):
             region = sorted(region)
             x = x[slice(region[0], region[1]+1, None)]
-            y = self.y[slice(region[0], region[1]+1, None)]
+            y = self._data.array[slice(region[0], region[1]+1, None)]
         elif isinstance(region, slice):
             x = x[region]
-            y = self.y[region]
+            y = self._data.array[region]
         else:
             raise ValueError(f"region can only either be a list, a slice or a list of lists! Not {type(region)}")
 
         return x, y
 
-    def _truncate_like_array_one_dimension(self, array, x):
+    def _truncate_like_array_one_dimension(self, array: np.ndarray[float], x: np.ndarray[float]) -> (np.ndarray[float], np.ndarray[float]):
         mask = np.logical_and(np.where((np.min(array) <= x), 1, 0),
                               np.where((x <= np.max(array)), 1, 0))
-        return x[mask], self._data[mask]
+        return x[mask], self._data.array[mask]
 
-    def _reductive_average(self, x, width):
+    def _reductive_average(self, x: np.ndarray[float], width: int) -> (np.ndarray[float], np.ndarray[float]):
         i = 0
         j = width - 1
 
@@ -173,7 +211,7 @@ class AbstractSpectrum(ABC):
         while i < np.size(x):
             s = slice(i, j, None)
             x_temp.append(np.nanmean(x[s]))
-            y_temp.append(np.nanmean(self.y[s], axis=0))
+            y_temp.append(np.nanmean(self._data.array[s], axis=0))
 
             i += width
             j += width
@@ -181,13 +219,13 @@ class AbstractSpectrum(ABC):
         return np.array(x_temp), np.array(y_temp)
 
     @staticmethod
-    def convolve_gaussian(x: np.ndarray, y: np.ndarray, fwhm: float) -> np.ndarray:
+    def convolve_gaussian(x: np.ndarray, y: np.ndarray, fwhm: float) -> np.ndarray[float]:
         if not np.all(np.diff(x) > 0):
             raise ValueError("X-Axis not sorted for interpolation!")
 
         OVERSAMPLING = 10
 
-        norm = trapezoid(np.nan_to_num(y), x)
+        norm = np.nanmax(y)
 
         x_gauss = np.linspace(np.min(x), np.max(x), OVERSAMPLING * len(x))
         y_large = np.interp(x_gauss, x, np.nan_to_num(y), left=np.nan, right=np.nan)
@@ -198,7 +236,7 @@ class AbstractSpectrum(ABC):
 
         y_new = np.interp(x, x_gauss, y_conv, left=np.nan, right=np.nan)
 
-        y_new *= norm / trapezoid(np.nan_to_num(y), x)
+        y_new *= norm / np.nanmax(y_new)
 
         return y_new
 

@@ -17,6 +17,7 @@ This file is part of pySpec
 """
 
 from .coreAbstractSpectrum import AbstractSpectrum
+from ..SpecCoreAxis.coreAbstractAxis import AbstractAxis
 from ..SpecCoreData.coreOneDimensionalData import OneDimensionalData
 from ..SpecCoreAxis.coreTimeAxis import TimeAxis
 from ..coreFunctions import inPlaceOp
@@ -85,8 +86,8 @@ class Transient(AbstractSpectrum):
                          self.y.unit)
 
     @inPlaceOp
-    def average(self, width):
-        self.t, self.y = self._reductive_average(self.t, width)
+    def average(self, width: int = 1):
+        self._t_axis.array, self._data.array = self._reductive_average(self._t_axis.array, width)
 
         return self
 
@@ -98,52 +99,51 @@ class Transient(AbstractSpectrum):
         return self
 
     @inPlaceOp
-    def interpolate_to(self, t_axis):
+    def interpolate_to(self, t_axis: np.ndarray[float] or TimeAxis):
         if not np.all(np.diff(self._t_axis.array) > 0):
             raise ValueError("t-Axis not sorted for interpolation!")
 
         if isinstance(t_axis, type(self._t_axis)):
-            self.y = np.interp(t_axis.array, self._t_axis.array, np.nan_to_num(self.y), left=np.nan, right=np.nan)
+            self._data.array = np.interp(t_axis.array, self._t_axis.array, np.nan_to_num(self.y), left=np.nan, right=np.nan)
         elif isinstance(t_axis, np.ndarray):
-            self.y = np.interp(t_axis, self._t_axis.array, np.nan_to_num(self.y), left=np.nan, right=np.nan)
+            self._data.array = np.interp(t_axis, self._t_axis.array, np.nan_to_num(self.y), left=np.nan, right=np.nan)
         else:
             raise ValueError(f"array must be of type EnergyAxis or WavelengthAxis, or be a np.ndarray, not {type(t_axis)}")
 
         return self
 
-    def save(self, path):
-        self._save_one_dimension(self.t, self.y, path)
+    def save(self, path: str):
+        self._save_one_dimension(self._t_axis.array, self._data.array, path)
 
         return self
 
     @inPlaceOp
-    def eliminate_idx(self, t_idx=None):
+    def eliminate_idx(self, t_idx: list[int] or int or None = None):
         if t_idx is not None:
-            self.t, self.y = self._eliminate_pos_1d(self.t, t_idx)
+            self._t_axis.array, self._data.array = self._eliminate_pos_1d(self._t_axis.array, t_idx)
 
         return self
 
     @inPlaceOp
     def eliminate_repetition(self):
-        self.t, self.y = self._eliminate_repetition_1d(self.t)
+        self._t_axis.array, self._data.array = self._eliminate_repetition_1d(self._t_axis.array)
 
         return self
 
     @inPlaceOp
-    def truncate_to(self, t_range=None):
+    def truncate_to(self, t_range: list[float] or None = None):
 
         # TODO: IMPLEMENT SLICING
         t_range = [self.t.closest_to(t)[0] for t in t_range]
-        self.t, self.y = self._truncate_one_dimension(t_range, self.t)
+        self._t_axis.array, self._data.array = self._truncate_one_dimension(t_range, self._t_axis.array)
 
         return self
 
     @inPlaceOp
-    def truncate_like(self, array=None):
+    def truncate_like(self, array: np.ndarray[float] or AbstractAxis = None):
 
         if array is not None:
-            self.orient_data('x')
-            self.x, self.y = self._truncate_like_array_one_dimension(array, self.x)
+            self._t_axis.array, self._data.array = self._truncate_like_array_one_dimension(array, self._t_axis.array)
 
         return self
 
@@ -153,7 +153,7 @@ class Transient(AbstractSpectrum):
                              f"{len(self._t_axis)} and {self._data.length}!")
 
     @classmethod
-    def average_from(cls, spec_list: list):
+    def average_from(cls, spec_list: list['Transient']):
         y = []
 
         for item in spec_list:
@@ -170,7 +170,7 @@ class Transient(AbstractSpectrum):
                    spec_list[0].y.unit)
 
     @staticmethod
-    def from_file(path, parser_args: dict = None):
+    def from_file(path: str, parser_args: dict or None = None):
         from pySpec.SpecCore.coreParser import Parser
 
         args = {'t_unit': 's', 'data_unit': 'od'}
