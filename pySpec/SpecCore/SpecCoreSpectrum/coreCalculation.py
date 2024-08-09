@@ -8,6 +8,7 @@ from ..SpecCoreAxis import EnergyAxis, WavelengthAxis
 from ..SpecCoreSpectrum import Spectrum
 from ..coreLineShapes import gaussian, lorentzian, skewed_gaussian, voigt, pseudo_voigt
 from ..SpecCoreData.coreAbstractData import AbstractData
+from ..coreFunctions import inPlaceOp
 
 
 class Calculation(Spectrum):
@@ -29,7 +30,7 @@ class Calculation(Spectrum):
     __UVVIS = {
         'min' : 0,
         'max' : 1000,
-        'step' : 0.001,
+        'step' : 0.1,
         'kw': ('uvvis', 'UVVis', 'TDDFT', 'tddft')
         }
 
@@ -85,13 +86,6 @@ class Calculation(Spectrum):
     @y.setter
     def y(self, array: np.ndarray):
         raise NotImplementedError()
-        # if not isinstance(array, np.ndarray) and not isinstance(array, AbstractData):
-        #     raise ValueError(f"data can only be ndarray or AbstractData but is {type(array)}!")
-        #
-        # if isinstance(array, AbstractData):
-        #     self._data = deepcopy(array)
-        # else:
-        #     self._data.array = array.copy()
 
     def sort(self):
         pass
@@ -105,7 +99,7 @@ class Calculation(Spectrum):
 
         Saves the spectrum as an ascii-formatted file.
         """
-        self._save_one_dimension(self._x_axis, self._data, path)
+        self._save_one_dimension(self._x_axis.array, self._data.array, path)
 
         return self
 
@@ -116,12 +110,27 @@ class Calculation(Spectrum):
         Saves the spectrum as an ascii-formatted file.
         """
 
-        self._save_one_dimension(self._pos_axis, self._int_axis, path)
+        self._save_one_dimension(self._pos_axis.array, self._int_axis.array, path)
 
         return self
 
     def eliminate_repetition(self):
         raise NotImplementedError()
+
+    @inPlaceOp
+    def truncate_to(self, x_range: list = None):
+        x_range = [self.x.closest_to(x)[0] for x in x_range]
+
+        mask = np.where(self._pos_axis.array < self._x_axis[np.min(x_range)], False, True)
+        mask *= np.where(self._pos_axis.array > self._x_axis[np.max(x_range)], False, True)
+
+        self._pos_axis.array = self._pos_axis.array[mask]
+        self._int_axis.array = self._int_axis.array[mask]
+
+        self._x_axis.array, self._data.array = self._truncate_one_dimension(x_range, self._x_axis.array)
+        self._recalculate = False
+
+        return self
 
     @classmethod
     def from_file(cls, path, **kwargs):
