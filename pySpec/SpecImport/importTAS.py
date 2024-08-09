@@ -72,8 +72,8 @@ class ImportTas(ImportTimeResolvedBase):
 
     def correct_dispersion(self,
                            data: TransientSpectrum,
-                           x_range=[300, 500],
-                           t_range = [-2, 2],
+                           x_range=(300, 500),
+                           t_range = (-2, 2),
                            scaling_factor=1,
                            method='bfgs',
                            visualize=False):
@@ -149,18 +149,8 @@ class ImportTas(ImportTimeResolvedBase):
 
         for data in self._data_list:
             data.subtract_prescans(until_time, from_time)
-            # until_time_idx = data.t.closest_to(until_time)[0]
-            #
-            # from_time_idx = 0
-            # if from_time is not None:
-            #     from_time_idx = data.t.closest_to(from_time)[0]
-            #
-            # idx = slice(from_time_idx, until_time_idx)
-            # self._pre_scans.append(data.spectrum[idx])
-            # data.y = data.y.array - np.tile(self._pre_scans[-1].y.array, (len(data.t), 1)).T
+
         return self
-
-
 
     @staticmethod
     def _parse_data(file_path):
