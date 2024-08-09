@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 from scipy.integrate import trapezoid
 
 from ..SpecCore.SpecCoreSpectrum.coreTransientSpectrum import TransientSpectrum
@@ -6,31 +7,13 @@ from ..SpecCore.SpecCoreSpectrum.coreTransientSpectrum import TransientSpectrum
 
 class Integral(TransientSpectrum):
 
-    def __init__(self, data: TransientSpectrum, supersampling_rate=4):
-        self._supersampling_rate = supersampling_rate
-        x, y = self.__supersampling(data.x.array, data.t.array, data.y.array)
-
-        data = TransientSpectrum(x, data.t, y, data.x.unit, data.t.unit, data.y.unit)
+    def __init__(self, data: TransientSpectrum):
         data.orient_data('x')
 
         y = self._calculate_integrals(data)
 
         super().__init__(np.array([-1, 1]), data.t, y,
                          x_unit=data.x.unit, t_unit=data.t.unit, data_unit=data.y.unit)
-
-    def __supersampling(self, x, t, y):
-        x_steps = [i * self._supersampling_rate for i in range(len(x))]
-        x_gen = [i for i in range(self._supersampling_rate * len(x))]
-
-        x_new = np.interp(x_gen, x_steps, x, left=0, right=0)
-
-        y_new = []
-        for i, _ in enumerate(t):
-            y_new.append(np.array(
-            np.interp(x_gen, x_steps, y[:, i], left=0, right=0)
-        ))
-
-        return x_new, np.array(y_new)
 
     def _calculate_integrals(self, data: TransientSpectrum):
         pos = np.where(data.y.array > 0, data.y.array, 0)
@@ -40,3 +23,39 @@ class Integral(TransientSpectrum):
         area_pos = trapezoid(pos, data.x.array, axis=0)
 
         return np.array([area_neg, area_pos])
+
+    def plot(self):
+        from ..SpecPlot.plotStaticMethods import lighten_color
+        from ..SpecPlot.plotMPCFigure import MPCFigure
+
+        fig, ax = plt.subplots(FigureClass=MPCFigure)
+        ax2 = ax.twinx()
+
+        ax.plot(
+            self.t, self.transient['-1'].y,
+            marker='o', ls='', color='tab:blue', markersize=6, label='Bleach', markerfacecolor=lighten_color('tab:blue', 0.5)
+        )
+        ax.plot(
+            self.t, self.transient['1'].y,
+            marker='o', ls='', color='tab:red', markersize=6, label='Absorption', markerfacecolor=lighten_color('tab:red', 0.5)
+        )
+        ax2.plot(
+            self.t, 100 * self.transient['1'].y / self.transient['-1'].y,
+            marker='o', ls='', color='tab:green', markersize=6, markerfacecolor=lighten_color('tab:green', 0.5)
+        )
+
+        ax.set_xscale('symlog', linscale=2)
+        ax.set_xlim(0, 3e8)
+        ax.set_ylim(0)
+
+        ax.set_xlabel(self.t.label)
+
+        ax2.spines['right'].set_color('tab:green')
+        ax2.set_ylim(0, 150)
+        ax2.tick_params(which='both', color='tab:green', labelcolor='tab:green')
+
+        ax.set_ylabel(r'$\int \Delta$ mOD')
+        ax2.set_ylabel(r'% Absorption / Bleach', color='tab:green')
+        ax.legend()
+
+        return fig, (ax, ax2)
