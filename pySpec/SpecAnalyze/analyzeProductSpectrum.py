@@ -57,7 +57,7 @@ class ProductSpectrum(TransientSpectrum):
 
         self._fwhm = value
 
-        self._static_data.y = self._amplitude * self._backup['static_data'].y.array
+        self._static_data.y = self._amplitude * self._backup['static_data'].y.array.copy()
 
         if value > 0:
             self._static_data.y = self.convolve_gaussian(self._static_data.x.array,
@@ -82,7 +82,7 @@ class ProductSpectrum(TransientSpectrum):
 
     @property
     def static_data(self):
-        return self._static_data
+        return self._static_data.truncate_like(self._x_axis, inplace=False)
 
     def __init__(self,
                  transient_data: TransientSpectrum,
