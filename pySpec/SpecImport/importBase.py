@@ -149,7 +149,6 @@ class ImportTimeResolvedBase:
                     if idx == reference_idx:
                         continue
                     cca_ftr.append(executor.submit(cca, data, self._data_list[reference_idx], **kwargs))
-                    # cca_ftr.append(executor.submit(cca.correlate_from, self._data_list[reference_idx], data, parameter))
 
             for idx in range(len(self._data_list)):
                 if idx == reference_idx:
@@ -171,7 +170,6 @@ class ImportTimeResolvedBase:
                 cc = cca(data, self._data_list[reference_idx], **kwargs)
                 data.t = data.t + cc.shift_vector['t']
                 data.x = data.x + cc.shift_vector['x']
-                # self._data_list[idx] = cca.correlate_from(self._data_list[reference_idx], data, parameter)[0]
 
         return self
 
