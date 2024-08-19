@@ -20,6 +20,7 @@ from ..SpecCore.SpecCoreSpectrum.coreTransientSpectrum import TransientSpectrum
 from ..SpecCore.SpecCoreSpectrum.coreSpectrum import Spectrum
 
 from copy import deepcopy
+import numpy as np
 
 
 class ProductSpectrum(TransientSpectrum):
@@ -63,6 +64,7 @@ class ProductSpectrum(TransientSpectrum):
             self._static_data.y = self.convolve_gaussian(self._static_data.x.array,
                                                          self._static_data.y.array,
                                                          self._fwhm)
+        self._data.array = self._calculate_product()
 
     @property
     def shift(self):
@@ -74,7 +76,8 @@ class ProductSpectrum(TransientSpectrum):
 
         self._transient_data = deepcopy(self._backup['transient_data'])
         self._transient_data.x += self._shift
-        self.y = self._calculate_product()
+        self._data.array = self._calculate_product()
+        self._x_axis.array = self._transient_data.x.array
 
     @property
     def transient_data(self):
@@ -109,5 +112,5 @@ class ProductSpectrum(TransientSpectrum):
             'ddod'
         )
 
-    def _calculate_product(self):
-        return self._transient_data.y + self._static_data.interpolate_to(self._transient_data.x, inplace=False).y
+    def _calculate_product(self) -> np.ndarray[float]:
+        return (self._transient_data.y + self._static_data.interpolate_to(self._transient_data.x, inplace=False).y).array
