@@ -19,6 +19,7 @@ This file is part of pySpec
 from .importBase import ImportTimeResolvedBase
 
 from ..SpecCore.SpecCoreSpectrum.coreTransientSpectrum import TransientSpectrum
+from ..SpecCore.SpecCoreSpectrum.coreSpectrum import Spectrum
 from ..SpecCore.coreParser import Parser
 
 from ..pyStitchCorr import stitchCorr
@@ -69,7 +70,7 @@ class ImportUVmIR(ImportTimeResolvedBase):
 
         data_list = []
         for file in files:
-            for data in Parser(file, import_type='x_first', x_unit='wl', t_unit='ps', data_unit='dod'):
+            for data in Parser(file, import_type='x_first', x_unit='wl', t_unit='ps', data_unit='mdod'):
                 data_list.append(data)
 
         return cls(data_list)
@@ -81,7 +82,7 @@ class ImportUVmIR(ImportTimeResolvedBase):
         data_list = []
 
         for file in files:
-            for data in Parser(file, import_type='x_first', x_unit='wl', t_unit='ns', data_unit='dod'):
+            for data in Parser(file, import_type='x_first', x_unit='wl', t_unit='ns', data_unit='mdod'):
                 data.t = step_size * (data.t.array - t_zero_idx)
                 data_list.append(data)
 
