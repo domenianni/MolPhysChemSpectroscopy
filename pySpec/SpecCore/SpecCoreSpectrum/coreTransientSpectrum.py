@@ -16,7 +16,7 @@ This file is part of pySpec
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from scipy.interpolate import interp2d, RegularGridInterpolator
+from scipy.interpolate import RegularGridInterpolator
 import numpy as np
 from copy import deepcopy
 
@@ -228,19 +228,25 @@ class TransientSpectrum(AbstractSpectrum):
         if not isinstance(t_axis, TimeAxis) and t_axis is not None:
             raise ValueError(f"t_axis must be of type TimeAxis, not {type(t_axis)}")
 
+        self.sort()
         self.orient_data('t')
 
-        f = interp2d(self.x, self.t, np.nan_to_num(self.y),
-                     bounds_error=False, fill_value=np.nan)
+        interpolator = RegularGridInterpolator(
+            (self._t_axis.array, self._x_axis.array),
+            self._data.array,
+            bounds_error=False
+        )
 
         if x_axis is None:
             x_axis = self._x_axis
         if t_axis is None:
             t_axis = self._t_axis
 
-        self._data.array = f(x_axis.array, t_axis.array)
-        self.x = x_axis
-        self.t = t_axis
+        new_array = interpolator((t_axis.array[:, np.newaxis], x_axis.array[np.newaxis,:]))
+        self._data.array = new_array
+
+        self._x_axis = x_axis
+        self._t_axis = t_axis
 
         return self
 
@@ -330,7 +336,7 @@ class TransientSpectrum(AbstractSpectrum):
         return self
 
     @inPlaceOp
-    def eliminate_positions(self, x_pos: float | None = None, t_pos: float | None = None):
+    def eliminate_positions(self, x_pos: list[float] | None = None, t_pos: list[float] | None = None):
         if x_pos is not None:
             x_pos = [self.x.closest_to(x)[0] for x in x_pos]
         if t_pos is not None:
