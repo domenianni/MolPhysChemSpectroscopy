@@ -21,6 +21,7 @@ from .analyzeGlobalFit import GlobalFit
 from .analyzeKineticModel import KineticModel
 
 from pySpec.SpecCore.SpecCoreSpectrum.coreTransientSpectrum import TransientSpectrum
+from pySpec.SpecAnalyze.analyzeProductSpectrum import ProductSpectrum
 from pySpec.SpecCore.SpecCoreSpectrum import Spectrum
 
 from lmfit import Parameters
@@ -43,7 +44,7 @@ class PartialTargetFit(GlobalFit):
         if not isinstance(value, Spectrum):
             raise ValueError(f"parent has to be of type Spectrum, not {type(value)}!")
 
-        value = value.interpolate_to(self.data.x, False)
+        value = value.interpolate_to(self.data.x, inplace=False)
         value.y = np.nan_to_num(value.y)
 
         self._parent = value
@@ -60,10 +61,17 @@ class PartialTargetFit(GlobalFit):
         else:
             return None
 
-    def __init__(self, data, model):
+    def __init__(self, data: TransientSpectrum or ProductSpectrum, model):
+        self._parent: Spectrum or None = None
+
+        if isinstance(data, ProductSpectrum):
+            self._parent = data.static_data
+            self._parent.interpolate_to(data.x)
+            self._parent.y = np.nan_to_num(self._parent.y)
+            data = data.transient_data
+
         super().__init__(data, model)
 
-        self._parent: Spectrum or None = None
         self._positive_data: np.ndarray = None
 
     def _target_function(self, params: Parameters):
@@ -78,7 +86,8 @@ class PartialTargetFit(GlobalFit):
                 params: Parameters,
                 model: KineticModel,
                 data: TransientSpectrum):
-        concentrations = self.model.calculate_concentrations(self.data.t.array, [params[x] for x in model.parameter]).T
+        k_parameter = [params[x].value for x in model.parameter if "f" not in x]
+        concentrations = self.model.calculate_concentrations(self.data.t.array, k_parameter).T
 
         lineshapes, positive_data = self._calculate_lineshapes(params['A'],
                                                                self._parent.y.array,
@@ -99,6 +108,10 @@ class PartialTargetFit(GlobalFit):
         return lineshapes, positive_data
 
     def _prepare_parameter(self, init_values):
+        # TODO add check for amount of init values
+        if not (len(init_values) == len(self.model.parameter) + 1):
+            raise ValueError(f"{len(init_values)} initial parameter have been provided, but {len(self.model.parameter)} are necessary. These are {self.model.parameter}!")
+
         parameter = self._prepare_k_parameter(init_values[:-1])
         return self._add_amplitude_param(init_values[-1], parameter)
 
