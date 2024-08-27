@@ -38,7 +38,7 @@ class ImportUVmIR(ImportTimeResolvedBase):
         return len(self._data_list)
 
     def correct_stitch(self, block_amount: int = 4, reference: int = None,
-                       is_asymmetric: bool = False, is_linear: bool = False):
+                       is_asymmetric: bool = True, is_linear: bool = False):
         # For some weird reason, the linear stitching correction does not work when the stitching blocks have been
         # sorted...
         # For now: Always sort, except when a linear correction is requested.
