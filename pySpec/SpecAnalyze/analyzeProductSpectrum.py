@@ -43,9 +43,10 @@ class ProductSpectrum(TransientSpectrum):
     @offset.setter
     def offset(self, value):
         self._static_data.y += value - self._offset
+        self._offset = value
+
         self.y = self._calculate_product()
 
-        self._offset = value
 
     @property
     def fwhm(self):
@@ -58,7 +59,7 @@ class ProductSpectrum(TransientSpectrum):
 
         self._fwhm = value
 
-        self._static_data.y = self._amplitude * self._backup['static_data'].y.array.copy()
+        self._static_data.y = self._amplitude * self._backup['static_data'].y.array.copy() + self._offset
 
         if value > 0:
             self._static_data.y = self.convolve_gaussian(self._static_data.x.array,
@@ -85,7 +86,7 @@ class ProductSpectrum(TransientSpectrum):
 
     @property
     def static_data(self):
-        return self._static_data.truncate_like(self._x_axis, inplace=False)
+        return self._static_data.truncate_like(self._x_axis.array, inplace=False)
 
     def __init__(self,
                  transient_data: TransientSpectrum,
@@ -113,4 +114,6 @@ class ProductSpectrum(TransientSpectrum):
         )
 
     def _calculate_product(self) -> np.ndarray[float]:
-        return (self._transient_data.y + self._static_data.interpolate_to(self._transient_data.x, inplace=False).y).array
+        return (
+                self._transient_data.y + self._static_data.interpolate_to(self._transient_data.x, inplace=False).y
+        ).array
