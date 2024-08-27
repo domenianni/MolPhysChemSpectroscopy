@@ -74,8 +74,8 @@ class ImportTimeResolvedFTIR(ImportTimeResolvedBase):
     def spectra_average(self):
         return TransientSpectrum.average_from(self.spectra)
 
-    def set_solvent_reference(self, path, parser_args: dict = None):
-        self._solvent = Spectrum.average_from_files(path, parser_args)
+    def set_solvent_reference(self, path, **kwargs):
+        self._solvent = Spectrum.average_from_files(path, **kwargs)
         self._solvent.interpolate_to(self._intensities_list[0].x)
 
         return self
