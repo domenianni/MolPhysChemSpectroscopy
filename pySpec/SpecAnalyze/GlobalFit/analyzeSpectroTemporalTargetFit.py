@@ -46,7 +46,7 @@ class SpectroTemporalTargetFit(GlobalFit):
     def __init__(self, data, model):
         super().__init__(data, model)
 
-        self._lineshapes = np.zeros((len(model.parameter), len(data.x)))
+        self._lineshapes = np.zeros((len(model.start_conc), len(data.x)))
         self._base_lineshapes = self._lineshapes.copy()
 
     def _kernel(self,
