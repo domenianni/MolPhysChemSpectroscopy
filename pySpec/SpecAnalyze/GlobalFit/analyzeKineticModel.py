@@ -3,6 +3,8 @@ import scipy.integrate
 from sympy import Matrix, dsolve, symbols, Function, lambdify, Eq, sympify, ImmutableMatrix, exp, zeros
 from copy import copy
 
+import timeit
+
 """
 This file is part of pySpec
     Copyright (C) 2024  Markus Bauer
@@ -24,17 +26,18 @@ This file is part of pySpec
 
 class KineticModel:
     _solver = 'LSODA'  # 'RK45'
+    _inversion_method = 'ADJ' # 'ADJ', 'LDL', 'LU', EXCLUDED: GE, QR, DM, DMNC
 
     def __init__(self,
                  matrix:       str = None,
                  start_conc:   list[float] or tuple[float] = None,
                  solve_symbol: bool = True):
-        """:param matrix: String of the (square) k-Matrix. Concentrations have to be denoted as f{i}(t) with {i} being
-                           a zero-based index of the respective species.
-           :param start_conc: List of floats representing the starting concentration of the species.
-           :param solve_symbol: Flag to select, whether symbolical evaluation of the differential equations is
-                                       attempted. For a unimolecular reaction an eigenvector approach is taken. Else
-                                       dsolve of the sympy-module is leveraged.
+        """
+        :param matrix: String representation of the (square) k-Matrix. Concentrations must be denoted as f{i}(t),
+                       where {i} is a zero-based index for each species.
+        :param start_conc: A list or tuple of floats representing the initial concentrations of the species.
+        :param solve_symbol: Flag indicating whether to attempt symbolic solution of differential equations.
+                             If False, a numerical solver is used instead.
         """
         self.k_matrix = Matrix(sympify(matrix))
         self.start_conc = start_conc
@@ -45,6 +48,14 @@ class KineticModel:
         self.function, self.parameter, self.func = self._create_model()
 
     def calculate_concentrations(self, times, k_list):
+        """
+        Calculate the concentrations of species at given times using either symbolic or numerical methods.
+
+        :param times: Array of time points at which to evaluate the concentrations.
+        :param k_list: List of rate constants to be used in the calculations.
+        :return: Array of concentrations at the specified times.
+        """
+
         if self._symbol_solve:
             return np.array(self.function(times, *k_list))
         else:
@@ -58,10 +69,19 @@ class KineticModel:
             return res.y
 
     def _test_input(self):
+        """
+        Check that the k-matrix is square and that its dimensions match the number of species in the start_conc list.
+        """
+
         assert self.k_matrix.is_square
         assert self.k_matrix.shape[0] == len(self.start_conc)
 
     def _create_model(self):
+        """
+        Create the kinetic model (either symbolic or numerical) based on the k-matrix.
+
+        :return: A tuple of (lambda function to evaluate the system, list of parameters, symbolic equations)
+        """
         t = symbols('t')
         sym = {t}
 
@@ -90,8 +110,15 @@ class KineticModel:
 
         return lambdify(arguments, func, 'numpy'), parameter, func
 
-    @staticmethod
-    def _matrix_method(k_matrix, start_conc):
+    def _matrix_method(self, k_matrix, start_conc):
+        """
+        Solve the system using an eigenvalue/eigenvector approach for unimolecular reactions
+        (no time dependence in k-matrix).
+
+        :param k_matrix: The k-matrix (reaction rate matrix).
+        :param start_conc: List of initial concentrations.
+        :return: List of concentrations as functions of time.
+        """
         t = symbols('t')
 
         k_eigen = k_matrix.eigenvects()
@@ -105,7 +132,7 @@ class KineticModel:
 
         eigen_vectors = ImmutableMatrix(eigen_vectors)
 
-        a = eigen_vectors ** -1 * Matrix(start_conc)
+        a = eigen_vectors.inv(method=self._inversion_method) * Matrix(start_conc)
 
         ct = zeros(len(start_conc), 1)
         for i, _ in enumerate(start_conc):
@@ -115,6 +142,14 @@ class KineticModel:
 
     @staticmethod
     def _dsolve_method(k_matrix, start_conc, symbol_solve):
+        """
+        Solve the system using sympy's dsolve method (symbolic solution) or fallback to numerical method.
+
+        :param k_matrix: The k-matrix (reaction rate matrix).
+        :param start_conc: List of initial concentrations.
+        :param symbol_solve: Flag indicating whether to try symbolic solving.
+        :return: Tuple of (list of symbolic ODE solutions or numerical equations, success flag).
+        """
         t = symbols('t')
 
         functions = [Function(f"f{i}")(t) for i, _ in enumerate(start_conc)]
@@ -136,6 +171,7 @@ class KineticModel:
         # Solve
         if symbol_solve:
             try:
+                print('Trying to solve the equation symbolically! This might take some time...')
                 # Try first to symbolically solve the system of differential equations
                 # If it is possible, return a list of the solution functions and a flag to signal success of the
                 # symbolical evaluation.
@@ -156,7 +192,20 @@ class KineticModel:
         return deq, False
 
     @classmethod
-    def decay_associated_model(cls, component_amount):
+    def create_from_N_matrix(cls, matrix):
+        ...
+
+    @classmethod
+    def decay_associated_model(cls, component_amount, solve_symbol: bool = True):
+        """
+        Create a model for a decay process with a given number of components. Assumes that each component decays
+        to the next component in a chain.
+
+        :param component_amount: Number of components (species).
+        :param solve_symbol: Flag indicating whether to try symbolic solving.
+        :return: A KineticModel instance with a decay-associated k-matrix and default starting concentrations.
+        """
+
         matrix = "["
 
         k = 0
@@ -179,10 +228,19 @@ class KineticModel:
         matrix += "]"
 
         print(matrix)
-        return cls(matrix, start_conc=[1 for _ in range(component_amount)])
+        return cls(matrix, start_conc=[1 for _ in range(component_amount)], solve_symbol=solve_symbol)
 
     @classmethod
-    def evolution_associated_model(cls, component_amount):
+    def evolution_associated_model(cls, component_amount, solve_symbol: bool = True):
+        """
+        Create a model for a decay process with a given number of components. Assumes that each component decays
+        to the next component in a chain.
+
+        :param component_amount: Number of components (species).
+        :param solve_symbol: Flag indicating whether to try symbolic solving.
+        :return: A KineticModel instance with a decay-associated k-matrix and default starting concentrations.
+        """
+
         matrix = "["
 
         k = 0
@@ -210,8 +268,17 @@ class KineticModel:
         start_conc[0] = 1
 
         print(matrix)
-        return cls(matrix, start_conc=start_conc, solve_symbol=False)
+        return cls(matrix, start_conc=start_conc, solve_symbol=solve_symbol)
 
 
 if __name__ == '__main__':
-    pass
+
+    f = KineticModel.evolution_associated_model(7, True)
+    # Kinetic Matrix for Enzyme Kinetics à
+    # [S] + [E] <-> [ES] -> [P] + [E]
+    # matrix = (
+    #     "[[-k0 * f1(t),           0,     +k1, 0],"  # [S]
+    #     " [          0, -k0 * f0(t), +k1 +k2, 0],"  # [E]
+    #     " [ k0 * f1(t),           0, -k1 -k2, 0],"  # [ES]
+    #     " [ 0,                    0,     +k2, 0]]"  # [P]
+    # )
