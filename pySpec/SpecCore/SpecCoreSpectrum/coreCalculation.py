@@ -42,6 +42,25 @@ class Calculation(Spectrum):
         }
 
     @property
+    def fwhm(self):
+        return self._lineshape_params.get('fwhm')
+
+    @fwhm.setter
+    def fwhm(self, value: float):
+        self._lineshape_params['fwhm'] = value
+        self._recalculate = True
+
+    @property
+    def scaling(self):
+        return self._scaling
+
+    @scaling.setter
+    def scaling(self, value):
+        self._pos_axis.array *= value / self._scaling
+        self._scaling = value
+        self._recalculate = True
+
+    @property
     def roots(self):
         return {i + 1: {'position': p, 'intensity': ints} for i, (p, ints) in enumerate(zip(self.pos, self.int))}
 
@@ -55,7 +74,15 @@ class Calculation(Spectrum):
             raise KeyError(f"Lineshape {value} not recognized!")
 
         self._lineshape = value
-        self._lineshape_params = self.__ENVELOPE.get(value)
+
+        new = dict()
+        for key, val in self.__ENVELOPE.get(value).items():
+            if not key in self._lineshape_params:
+                new[key] = val
+            else:
+                new[key] = self._lineshape_params.get(key)
+
+        self._lineshape_params = new
 
         self._recalculate = True
         
@@ -118,7 +145,8 @@ class Calculation(Spectrum):
         raise NotImplementedError()
 
     @inPlaceOp
-    def truncate_to(self, x_range: list = None):
+    def truncate_to(self, x_range=None):
+        #TODO truncating after setting a scaling factor shifts only the position, not the lineshape...?
         x_range = [self.x.closest_to(x)[0] for x in x_range]
 
         mask = np.where(self._pos_axis.array < self._x_axis[np.min(x_range)], False, True)
@@ -155,6 +183,7 @@ class Calculation(Spectrum):
         self._lineshape_params.update(kwargs)
         self._lineshape = lineshape
         self._recalculate = False
+        self._scaling = 1
 
         if len(np.shape(intensities)) != 1:
             raise ValueError("Data Object only accepts one-dimensional arrays.")
