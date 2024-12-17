@@ -40,7 +40,8 @@ class GlobalFit:
                             'disp'  : True},
                   'dual_annealing': {'method': 'dual_annealing'},
                   'slsqp': {'method': 'slsqp'},
-                  'powell': {'method': 'powell'}
+                  'powell': {'method': 'powell'},
+                  'bfgs': {'method': 'bfgs'}
                   }
     
     def __init__(self, data: TransientSpectrum, model: KineticModel):
@@ -158,14 +159,14 @@ class GlobalFit:
     def _target_function(self, params: Parameters):
         self._lineshapes, self._concentrations = self._kernel(params, self.model, self.data)
 
-        return np.sum(np.abs(self._residuals))
+        return np.sum(np.square(self._residuals))
 
     @staticmethod
     def _kernel(params: Parameters,
                 model: KineticModel,
                 data: TransientSpectrum):
 
-        k_parameter = [params[x] for x in model.parameter if "f" not in x]
+        k_parameter = [params[x].value for x in model.parameter if "f" not in x]
         concentrations = model.calculate_concentrations(data.t.array, k_parameter).T
 
         lineshapes, resid, rank, singul_val = lstsq(concentrations, np.matrix(data.y.array))
@@ -181,7 +182,7 @@ class GlobalFit:
 
         parameter = Parameters()
         for p, i_val in zip(self.model.parameter, init_values):
-            parameter.add(p, value=i_val, vary=True, min=0, max=10, expr=None, brute_step=None)
+            parameter.add(p, value=i_val, vary=True, expr=None, brute_step=None, min=0, max=10)
 
             if not "f" in p:
                 parameter.add('tau_'+p, 1/i_val, expr=f'1/{p}', vary=False)
