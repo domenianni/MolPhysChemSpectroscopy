@@ -132,13 +132,16 @@ class AbstractSpectrum(ABC):
         """
         with open(path, 'w') as file:
 
-            for value in x:
-                file.write(f"\t{value}")
+            for xv, yv in zip(x, y):
+                file.write(f"{xv}\t{yv}\n")
 
-            file.write("\n")
-
-            for value in y:
-                file.write(f"{value}\t")
+            # for value in x:
+            #     file.write(f"\t{value}")
+#
+            # file.write("\n")
+#
+            # for value in y:
+            #     file.write(f"{value}\t")
 
     @staticmethod
     def calculate_od(y: np.ndarray[float] or float,
