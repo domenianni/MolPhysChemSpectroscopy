@@ -1,8 +1,23 @@
-import numpy as np
+"""
+This file is part of pySpec
+    Copyright (C) 2024  Markus Bauer
 
-from .analyzeExponentialFunction import (ExponentialFall, ExponentialRise,
-                                         ConvolvedExponentialRise, ConvolvedExponentialFall)
-from .analyzeLineshapeFunction import Gaussian, Lorentzian
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    pySpec is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""
+
+import numpy as np
+from abc import ABC, abstractmethod
 
 from pySpec.SpecCore.SpecCoreSpectrum.coreTransient import Transient
 from pySpec.SpecCore.SpecCoreSpectrum.coreSpectrum import Spectrum
@@ -11,24 +26,18 @@ from lmfit import Model, Parameter, CompositeModel
 from copy import deepcopy
 
 
-class NumericalFit:
+class NumericalFit(ABC):
 
-    __method = 'nelder'
+    _method = 'nelder'
 
-    __fntypes = {
-        'fall': ExponentialFall,
-        'rise': ExponentialRise,
-        'fall_cnv': ConvolvedExponentialFall,
-        'rise_cnv': ConvolvedExponentialRise,
-        'gauss': Gaussian,
-        'lorentzian': Lorentzian
-    }
+    _fntypes = {}
 
     def __init__(self, data: Transient or Spectrum):
         self._fncount = 0
 
         self._models = {}
         self._result = None
+        self._components = None
 
         self._composit_model: CompositeModel = None
         self._composit_params: Parameter = None
@@ -36,16 +45,27 @@ class NumericalFit:
         self._data = deepcopy(data)
         self._data.y.array = np.nan_to_num(self._data.y.array)
 
+        self._prefix = ""
+
     def __getitem__(self, item):
         return self._models[item]
 
     @property
+    @abstractmethod
+    def fit(self):
+        ...
+
+    @abstractmethod
+    def _fit(self):
+        ...
+
+    @property
     def method(self):
-        return self.__method
+        return self._method
 
     @method.setter
     def method(self, method):
-        self.__method = method
+        self._method = method
 
     @property
     def result(self):
@@ -54,16 +74,9 @@ class NumericalFit:
 
         return self._result
 
-    @property
-    def fit(self):
-        if self._result is None:
-            self._fit()
-
-        return Transient(self._data.t, self._result.best_fit, self._data.t.unit, self._data.y.unit, self._data.position)
-
-    def add_fn(self, fntype: str or Model = 'fall', **kwargs):
+    def add_fn(self, fntype: str or Model = 'fall', vary=None, **kwargs):
         if isinstance(fntype, str):
-            model: Model = self.__fntypes.get(fntype)(prefix=f'f{self._fncount}_')
+            model: Model = self._fntypes.get(fntype)(prefix=f'f{self._fncount}_')
         elif isinstance(fntype, Model):
             model: Model = fntype
             model.prefix = f'f{self._fncount}_'
@@ -76,6 +89,10 @@ class NumericalFit:
 
         for key, val in kwargs.items():
             params[f'f{self._fncount}_{key}'].value = val
+
+        if vary is not None:
+            for key, val in vary.items():
+                params[f'f{self._fncount}_{key}'].vary = val
 
         self._models[self._fncount] = (model, params)
         self._create_composit_model()
@@ -100,47 +117,23 @@ class NumericalFit:
 
         self._result = None
 
-    def _fit(self):
-        if self._composit_model is None:
-            raise ValueError("No model present!")
-
-        self._result = self._composit_model.fit(data=self._data.y.array,
-                                                t=self._data.t.array,
-                                                params=self._composit_params,
-                                                nan_policy='omit',
-                                                method=self.__method)
-
     def save(self, path: str = "./", print_params: bool = True, print_report: bool = True):
         if self._result is None:
             raise ValueError("No Result present!")
 
         if print_report:
-            with open(path + f"{self._data.position['value']:.1f}_{self._data.position['unit']}_fit_report.txt", 'w') as file:
+            with open(path + f"{self._prefix}_fit_report.txt", 'w') as file:
                 file.write(self._result.fit_report())
 
         if print_params:
-            with open(path + f"{self._data.position['value']:.1f}_{self._data.position['unit']}_params.txt", 'w') as file:
+            with open(path + f"{self._prefix}_params.txt", 'w') as file:
                 for key, value in self._result.params.valuesdict():
                     file.write(f"{key:12} = {value:10.4f}\n")
 
-        self.fit.save(path + f"{self._data.position['value']:.1f}_{self._data.position['unit']}_fit_function.dat")
+        self.fit.save(path + f"{self._prefix}_fit_function.dat")
 
         return self
 
 
 if __name__ == '__main__':
-    import matplotlib.pyplot as plt
-    from pySpec import TransientSpectrum
-
-    d = TransientSpectrum.from_file(r"")
-
-    t = (NumericalFit(d.transient['']).add_fn(ExponentialFall, amplitude=-15, tau=10)
-                                          .add_fn(ExponentialFall, amplitude=-10, tau=30)
-                                          .add_fn(ExponentialRise, amplitude=-5, tau=100))
-    f = t.result
-
-    print(t.fit.fit_report())
-
-    plt.plot(d.t, d.transient[''].y)
-    plt.plot(f.t, f.y)
-    plt.show()
+    pass
