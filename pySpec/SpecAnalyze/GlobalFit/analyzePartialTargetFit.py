@@ -32,8 +32,8 @@ import matplotlib.pyplot as plt
 
 class PartialTargetFit(GlobalFit):
 
-    _WEIGHTING = 10
-    _PENALTY = 0.5
+    _WEIGHTING = 1
+    _PENALTY = 0.01
 
     @property
     def parent(self):
@@ -77,10 +77,8 @@ class PartialTargetFit(GlobalFit):
     def _target_function(self, params: Parameters):
         self._lineshapes, self._concentrations, self._positive_data = self._kernel(params, self.model, self.data)
 
-        return (
-                np.sum(np.abs(self._residuals)) +
-                self._WEIGHTING * np.sum(np.where(self._positive_data < 0, np.abs(self._positive_data), self._PENALTY * np.abs(self._positive_data)))
-                )
+        return (np.sum(np.square(self._residuals)) + self._WEIGHTING * np.sum(np.where(
+                    self._positive_data < 0, np.abs(self._positive_data), self._PENALTY * np.abs(self._positive_data))))
 
     def _kernel(self,
                 params: Parameters,
