@@ -110,7 +110,7 @@ class ProductSpectrum(TransientSpectrum):
             self._calculate_product(),
             self._transient_data.x.unit,
             self._transient_data.t.unit,
-            'ddod'
+            'ddmod'
         )
 
     def _calculate_product(self) -> np.ndarray[float]:
