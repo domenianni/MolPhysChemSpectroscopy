@@ -1,3 +1,21 @@
+"""
+This file is part of pySpec
+    Copyright (C) 2024  Markus Bauer
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    pySpec is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import trapezoid
@@ -33,15 +51,15 @@ class Integral(TransientSpectrum):
 
         ax.plot(
             self.t, self.transient['-1'].y,
-            marker='o', ls='', color='tab:blue', markersize=6, label='Bleach', markerfacecolor=lighten_color('tab:blue', 0.5)
+            marker='o', ls='', color='tab:blue', label='Bleach', markerfacecolor=lighten_color('tab:blue', 0.5)
         )
         ax.plot(
             self.t, self.transient['1'].y,
-            marker='o', ls='', color='tab:red', markersize=6, label='Absorption', markerfacecolor=lighten_color('tab:red', 0.5)
+            marker='o', ls='', color='tab:red', label='Absorption', markerfacecolor=lighten_color('tab:red', 0.5)
         )
         ax2.plot(
             self.t, 100 * self.transient['1'].y / self.transient['-1'].y,
-            marker='o', ls='', color='tab:green', markersize=6, markerfacecolor=lighten_color('tab:green', 0.5)
+            marker='o', ls='', color='tab:green', markerfacecolor=lighten_color('tab:green', 0.5)
         )
 
         ax.set_xscale('symlog', linscale=2)
