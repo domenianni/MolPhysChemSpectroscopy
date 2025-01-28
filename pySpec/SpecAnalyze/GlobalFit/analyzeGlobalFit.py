@@ -76,6 +76,7 @@ class GlobalFit:
         self._lineshapes = None
         self._concentrations = None
         self._parameter = None
+        self.result = None
 
     def fit(self, init_values: list[float] or None = None, optimizer='nelder'):
         self._parameter = self._prepare_parameter(init_values)
@@ -85,6 +86,13 @@ class GlobalFit:
                                nan_policy='omit',
                                **self._optimizer[optimizer]
                                )
+
+        return self
+
+    def evaluate(self, values: list[float] or None = None):
+        self._parameter = self._prepare_parameter(values)
+
+        self._target_function(self._parameter)
 
         return self
 
