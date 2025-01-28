@@ -169,7 +169,7 @@ class Spectrum(AbstractSpectrum):
         :param inplace: Modify values inplace or return a new instance.
         """
 
-        x_range = [self.x.closest_to(x)[0] for x in x_range]
+        x_range = [self._x_axis.closest_to(x)[0] for x in x_range]
         self._x_axis.array, self._data.array = self._truncate_one_dimension(x_range, self._x_axis.array)
 
         return self
