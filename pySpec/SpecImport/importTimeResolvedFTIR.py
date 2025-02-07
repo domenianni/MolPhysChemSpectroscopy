@@ -188,28 +188,7 @@ class ImportTimeResolvedFTIR(ImportTimeResolvedBase):
         atm_data_short = atm_data.truncate_to(x_range=x_range, inplace=False)
 
         for data in self._data_list:
-            data_short = data.truncate_to(x_range=x_range, inplace=False)
-
-            atm_data_short.interpolate_to(data_short.x)
-            atm_ar = np.nan_to_num(atm_data_short.y.array)
-
-            amp_array = [0]
-            amp_max_idx = np.argmax(atm_ar)
-
-            for i in range(self._pre_scans_amount, len(data_short.t)):
-                def target(amp, dat_array, atm_array):
-                    return np.sum(np.abs(dat_array - amp * atm_array))
-
-                dat_ar = np.nan_to_num(data_short.spectrum[i].y.array)
-                start_val = atm_ar[amp_max_idx] / dat_ar[amp_max_idx]
-
-                res = minimize(target, start_val, args=(dat_ar, atm_ar), method='Nelder-Mead', tol=1e-10)
-                amp_array.append(res.x[0])
-
-            atm_data.interpolate_to(data.x)
-            data.y = data.y - np.outer(np.array(amp_array), atm_data.y.array)
-
-            del(data_short)
+            data.atmospheric_correction(atm_data, x_range, self._pre_scans_amount)
 
         return self
 
