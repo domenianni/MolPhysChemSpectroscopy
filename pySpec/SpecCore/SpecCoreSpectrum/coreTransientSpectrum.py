@@ -19,6 +19,7 @@ This file is part of pySpec
 from scipy.interpolate import RegularGridInterpolator
 import numpy as np
 from copy import deepcopy
+from scipy.optimize import minimize
 
 from .coreAbstractSpectrum import AbstractSpectrum
 from .coreSpectrum import Spectrum
