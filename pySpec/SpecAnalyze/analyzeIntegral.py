@@ -19,21 +19,54 @@ This file is part of pySpec
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import trapezoid
+from numpy.polynomial.polynomial import Polynomial
 
-from ..SpecCore.SpecCoreSpectrum.coreTransientSpectrum import TransientSpectrum
+from pySpec.SpecCore.SpecCoreSpectrum.coreTransientSpectrum import TransientSpectrum
 
 
 class Integral(TransientSpectrum):
+    """
+    This class calculates and plots the integral of a transient spectrum, either through numerical integration
+    or polynomial fitting methods. It inherits from the TransientSpectrum class.
+    """
 
-    def __init__(self, data: TransientSpectrum):
+    degree = 40
+
+    def __init__(self, data: TransientSpectrum, integral_type='numerical'):
+        """
+        Initializes the Integral object by calculating the integral of the provided TransientSpectrum data.
+
+        :param data: The transient spectrum data to calculate integrals from.
+        :param integral_type: The method of integration ('numerical' or 'polynomial').
+
+        :raise ValueError: If the integral_type is neither 'numerical' nor 'polynomial'.
+        """
+
         data.orient_data('x')
 
-        y = self._calculate_integrals(data)
+        if integral_type == 'numerical':
+            y = self._calculate_integrals(data)
+        elif integral_type == 'polynomial':
+            y = self._calculate_polynomial(data)
+        else:
+            raise ValueError("integral_type has to be either:\n"
+                             "- numerical\n"
+                             "- polynomial\n")
 
         super().__init__(np.array([-1, 1]), data.t, y,
                          x_unit=data.x.unit, t_unit=data.t.unit, data_unit=data.y.unit)
 
     def _calculate_integrals(self, data: TransientSpectrum):
+        """
+        Calculates the integral of the spectrum using numerical trapezoidal integration.
+
+        This method computes the area under the curve for both the positive and negative values of the spectrum.
+
+        :param data: The transient spectrum data to integrate.
+
+        :return: An array containing two values, the area of the negative and positive parts of the spectrum.
+        """
+
         pos = np.where(data.y.array > 0, data.y.array, 0)
         neg = np.where(data.y.array < 0, data.y.array, 0)
 
@@ -42,9 +75,48 @@ class Integral(TransientSpectrum):
 
         return np.array([area_neg, area_pos])
 
+    def _calculate_polynomial(self, data):
+        """
+        Calculates the integral of the spectrum using polynomial fitting.
+
+        This method fits a polynomial to the spectrum data, evaluates it, and then integrates
+        the positive and negative areas under the curve.
+
+        :param data: The transient spectrum data to integrate.
+
+        :return: An array containing the integrated areas for the negative and positive values of each spectrum.
+        """
+
+        val = []
+
+        for s in data.spectrum:
+            p = Polynomial.fit(s.x.array, s.y.array, self.degree)
+            v = p.linspace(10000, [p.domain[0], p.domain[1]])
+
+            val.append(
+                    (
+                    - trapezoid(np.where(v[1] <= 0, v[1], 0), v[0]),
+                      trapezoid(np.where(v[1] >= 0, v[1], 0), v[0])
+                )
+            )
+
+        return np.array(val)
+
     def plot(self):
-        from ..SpecPlot.plotStaticMethods import lighten_color
-        from ..SpecPlot.plotMPCFigure import MPCFigure
+        """
+        Plots the integral results of the transient spectrum, including the bleach, absorption,
+        and their ratio as a percentage.
+
+        Uses the 'MPCFigure' class for custom plotting and visualizes the transient spectrum
+        with three different axes: one for the integral of the bleach, one for the absorption,
+        and a third for their ratio.
+
+        Returns:
+        tuple: The figure and axes used for plotting.
+        """
+
+        from pySpec.SpecPlot.plotStaticMethods import lighten_color
+        from pySpec.SpecPlot.plotMPCFigure import MPCFigure
 
         fig, ax = plt.subplots(FigureClass=MPCFigure)
         ax2 = ax.twinx()
@@ -77,3 +149,7 @@ class Integral(TransientSpectrum):
         ax.legend()
 
         return fig, (ax, ax2)
+
+
+if __name__ == '__main__':
+    pass
