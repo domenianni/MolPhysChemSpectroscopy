@@ -1,4 +1,3 @@
-from .analyzeIntegral_old import IntegralAnalysis
 from .analyzeIntegral import Integral
 from .analyzeProductSpectrum import ProductSpectrum
 from .analyzeStatistics import StatisticalAnalysisMeasurements
