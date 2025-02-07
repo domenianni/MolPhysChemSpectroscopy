@@ -20,6 +20,7 @@ from abc import ABC, abstractmethod
 from warnings import warn
 
 from ..coreFunctions import inPlaceOp
+from ..enums.enumUnit import DataUnit
 
 import numpy as np
 
@@ -37,17 +38,9 @@ class AbstractData(ABC):
 
     __slots__ = ('_array', '_unit')
 
-    _label_mapping = {
-        'mdod': r'$\Delta$mOD',
-        'dod':  r'$\Delta$OD',
-        'od':    'OD',
-        'mod':   'mOD',
-        'eps':  r'$\epsilon$ / M$^{-1}$cm$^{-1}$'
-    }
-
     @property
     def label(self):
-        return self._label_mapping.get(self._unit)
+        return self._unit.value
 
     @property
     def array(self) -> np.ndarray[float]:
@@ -62,7 +55,7 @@ class AbstractData(ABC):
         self._array = array.copy()
 
     @property
-    def unit(self) -> str:
+    def unit(self) -> DataUnit:
         """The unit of the data array."""
         return self._unit
 
@@ -76,9 +69,13 @@ class AbstractData(ABC):
         """The shape of the data array."""
         return np.shape(self._array)
 
-    def __init__(self, array: np.ndarray[float], unit: str):
+    def __init__(self, array: np.ndarray[float], unit: str or DataUnit):
         self._array = array.copy()
-        self._unit = unit
+
+        if isinstance(unit, str):
+            self._unit: DataUnit = DataUnit[unit]
+        else:
+            self._unit: DataUnit = unit
 
     def __iter__(self):
         return iter(self._array)
@@ -146,7 +143,7 @@ class AbstractData(ABC):
         if self._unit == 'eps':
             warn("Extinction Coefficient has already been calculated!")
 
-        self._unit = 'eps'
+        self._unit = DataUnit.EPSILON
 
         self._array = self._array / (layer_thickness * concentration)
 

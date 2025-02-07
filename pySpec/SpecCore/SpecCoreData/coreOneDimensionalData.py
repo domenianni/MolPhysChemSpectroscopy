@@ -18,6 +18,7 @@ This file is part of pySpec
 
 from .coreAbstractData import AbstractData
 from ..coreFunctions import inPlaceOp
+from ..enums.enumUnit import DataUnit
 
 import numpy as np
 
@@ -33,7 +34,7 @@ class OneDimensionalData(AbstractData):
 
     ndim = 1
 
-    def __init__(self, array: np.ndarray[float], unit: str):
+    def __init__(self, array: np.ndarray[float], unit: str or DataUnit):
         if len(np.shape(array)) != 1:
             raise TypeError("data_array must have only one dimension!")
 

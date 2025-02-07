@@ -18,6 +18,7 @@ This file is part of pySpec
 
 from .coreAbstractData import AbstractData
 from ..coreFunctions import inPlaceOp
+from ..enums.enumUnit import DataUnit
 
 import numpy as np
 
@@ -33,7 +34,7 @@ class TwoDimensionalData(AbstractData):
 
     ndim = 2
 
-    def __init__(self, array, unit):
+    def __init__(self, array, unit: str or DataUnit):
         if len(np.shape(array)) != 2:
             raise TypeError(f"data_array must have only two dimensions, but has dimensions {np.shape(array)}!")
 
