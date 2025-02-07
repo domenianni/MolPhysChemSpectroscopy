@@ -36,6 +36,11 @@ from ..coreLineShapes import gaussian
 
 class AbstractSpectrum(ABC):
     """
+    Abstract class for all Spectrum classes. Spectrum classes hold a combination of intensity values as a subclass of
+    AbstractData and one or more corresponding axes conferring spectral/temporal information.
+    """
+
+    """
     :param data: Spectrum data as a subclass of AbstractData.
 
     Abstract class for all Spectrum classes. Spectrum classes hold a combination of intensity values, as a subclass of
@@ -60,6 +65,14 @@ class AbstractSpectrum(ABC):
 
     @staticmethod
     def _initialize_axis(array: np.ndarray or AbstractAxis, unit: str) -> AbstractAxis:
+        """
+        Initializes the axis object based on the input array and unit.
+
+        :param array: A numpy array or AbstractAxis to initialize.
+        :param unit: The unit for the axis, e.g., 'wn', 'ev', 'wl', or time units.
+        :return: An appropriate AbstractAxis object based on the array and unit.
+        """
+
         if isinstance(array, np.ndarray):
             if unit in ('wn', 'ev'):
                 return EnergyAxis(array, unit)
@@ -76,6 +89,14 @@ class AbstractSpectrum(ABC):
 
     @staticmethod
     def _set_array(array, old_axis) -> AbstractAxis:
+        """
+        Sets the array values for the given axis object.
+
+        :param array: The numpy array to set.
+        :param old_axis: The existing axis object.
+        :return: The updated axis object.
+        """
+
         if isinstance(array, np.ndarray):
             old_axis.array = array.copy()
             return old_axis
@@ -85,21 +106,42 @@ class AbstractSpectrum(ABC):
         raise ValueError(f"array must be of type np.ndarray, not {type(array)}")
 
     def __sub__(self, other):
+        """
+        Subtracts the spectrum from another spectrum using the `subtract` method.
+
+        :param other: The spectrum to subtract.
+        :return: The result of the subtraction.
+        """
+
         return self.subtract(other)
 
     @abstractmethod
     def subtract(self, other):
+        """
+        Subtracts the data from another spectrum.
+
+        :param other: The spectrum to subtract.
+        :return: The resulting spectrum after subtraction.
+        """
+
         pass
 
     @property
     def y(self):
         """
-        The data object. Can be overwritten with a new array.
+        Returns the data object containing the spectrum values.
         """
         return self._data
 
     @y.setter
     def y(self, array: np.ndarray[float] or AbstractData):
+        """
+        Sets the data object for the spectrum.
+
+        :param array: The new data array or AbstractData object.
+        :raises ValueError: If the array is not of type np.ndarray or AbstractData.
+        """
+
         if not isinstance(array, np.ndarray) and not isinstance(array, AbstractData):
             raise ValueError(f"data can only be ndarray or AbstractData but is {type(array)}!")
 
@@ -110,25 +152,39 @@ class AbstractSpectrum(ABC):
 
     @abstractmethod
     def _check_dimensions(self):
+        """
+        Abstract method to check the dimensions of the spectrum data.
+        """
+
         pass
 
     @abstractmethod
     def sort(self):
+        """
+        Abstract method to sort the data according to the axis.
+        """
+
         pass
 
     @abstractmethod
     def save(self, path):
+        """
+        Abstract method to save the spectrum data to a specified path.
+
+        :param path: Path where the data should be saved.
+        """
+
         pass
 
     @staticmethod
     def _save_one_dimension(x: np.ndarray[float], y: np.ndarray[float], path: str) -> None:
         """
-        :param x: The axis.
-        :param y: Conjoined data values.
+        Saves the 1D data arrays (x, y) to an ASCII file at the given path.
+
+        :param x: The axis values.
+        :param y: The corresponding data values.
         :param path: Path, including file name and suffix, where to save the data.
         :return: None
-
-         Internal function to save an axis x and its conjoined values y.
         """
         with open(path, 'w') as file:
 
@@ -146,20 +202,46 @@ class AbstractSpectrum(ABC):
     @staticmethod
     def calculate_od(y: np.ndarray[float] or float,
                      y_ref: np.ndarray[float] or float) -> np.ndarray[float] or float:
+        """
+        Calculates the optical density (OD) based on the given data and reference values.
+
+        :param y: The measured spectrum values.
+        :param y_ref: The reference spectrum values.
+        :return: The optical density (OD).
+        """
 
         return - np.log10(np.divide(y, y_ref))
 
     @abstractmethod
     def eliminate_repetition(self):
+        """
+        Abstract method to eliminate repeated data values.
+        """
+
         pass
 
     def _eliminate_pos_1d(self, x: np.ndarray, idx: list[int] or int) -> (np.ndarray[float], np.ndarray[float]):
+        """
+        Removes the data at the specified indices (idx) from the spectrum.
+
+        :param x: The axis values.
+        :param idx: List or single index of values to remove.
+        :return: The new axis and data arrays with the specified values removed.
+        """
+
         mask = np.ones_like(x, dtype=bool)
         mask[idx] = False
 
         return x[mask], self._data.array[mask]
 
     def _eliminate_repetition_1d(self, x: np.ndarray[float]) -> (np.ndarray[float], np.ndarray[float]):
+        """
+        Eliminates repeated consecutive values in the spectrum data.
+
+        :param x: The axis values.
+        :return: The axis and data arrays with repeated values removed.
+        """
+
         pos = []
         mask = [True]
         for i, t in enumerate(x[1:], start=1):
@@ -176,7 +258,14 @@ class AbstractSpectrum(ABC):
 
     def _truncate_one_dimension(self, region, x: np.ndarray) -> (np.ndarray[float], np.ndarray[float]):
         # TODO Should this be split up and use truncation within the axis and data objects?
-        """Truncates INCLUSIVELY!!"""
+        """
+        Truncates the spectrum data in the specified region, inclusively.
+
+        :param region: The region(s) to truncate (either a list of indices or a slice).
+        :param x: The axis values.
+        :return: The truncated axis and data arrays.
+        """
+
         if all(isinstance(i, list) for i in region):
             x_temp = []
             y_temp = []
@@ -201,11 +290,27 @@ class AbstractSpectrum(ABC):
         return x, y
 
     def _truncate_like_array_one_dimension(self, array: np.ndarray[float], x: np.ndarray[float]) -> (np.ndarray[float], np.ndarray[float]):
+        """
+        Truncates the spectrum data to match the range of the given array.
+
+        :param array: The reference array for truncation.
+        :param x: The axis values.
+        :return: The truncated axis and data arrays.
+        """
+
         mask = np.logical_and(np.where((np.min(array) <= x), 1, 0),
                               np.where((x <= np.max(array)), 1, 0))
         return x[mask], self._data.array[mask]
 
     def _reductive_average(self, x: np.ndarray[float], width: int) -> (np.ndarray[float], np.ndarray[float]):
+        """
+        Computes a reductive average of the data with the specified width.
+
+        :param x: The axis values.
+        :param width: The width of the window for averaging.
+        :return: The averaged axis and data arrays.
+        """
+
         i = 0
         j = width - 1
 
@@ -223,6 +328,15 @@ class AbstractSpectrum(ABC):
 
     @staticmethod
     def convolve_gaussian(x: np.ndarray, y: np.ndarray, fwhm: float) -> np.ndarray[float]:
+        """
+        Convolves the data with a Gaussian function of the specified FWHM.
+
+        :param x: The axis values.
+        :param y: The data values.
+        :param fwhm: The full width at half maximum of the Gaussian function.
+        :return: The convolved data.
+        """
+
         if not np.all(np.diff(x) > 0):
             raise ValueError("X-Axis not sorted for interpolation!")
 
@@ -246,6 +360,14 @@ class AbstractSpectrum(ABC):
     @staticmethod
     @abstractmethod
     def from_file(path, parser_args: dict):
+        """
+        Abstract method to load data from a file.
+
+        :param path: The path to the file.
+        :param parser_args: Additional arguments for parsing the file.
+        :return: The spectrum object.
+        """
+
         pass
 
 
