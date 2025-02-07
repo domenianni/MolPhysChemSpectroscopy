@@ -425,6 +425,34 @@ class TransientSpectrum(AbstractSpectrum):
 
         self._data.array = np.array(data_y)
 
+    @inPlaceOp
+    def atmospheric_correction(self, atm_data: Spectrum, x_range=None, pre_scan_amount=1):
+        self.orient_data('t')
+
+        data_short = self.truncate_to(x_range=x_range, inplace=False)
+        atmo_short = atm_data.truncate_to(x_range=x_range, inplace=False)
+        atm_data = atm_data.interpolate_to(self._x_axis, inplace=False)
+
+        atmo_short.interpolate_to(data_short.x)
+        atm_ar = np.nan_to_num(atmo_short.y.array)
+
+        amp_array = [0]
+        amp_max_idx = np.argmax(atm_ar)
+
+        for i in range(pre_scan_amount, len(data_short.t)):
+            def target(amp, dat_array, atm_array):
+                return np.sum(np.abs(dat_array - amp * atm_array))
+
+            dat_ar = np.nan_to_num(data_short.spectrum[i].y.array)
+            start_val = atm_ar[amp_max_idx] / dat_ar[amp_max_idx]
+
+            res = minimize(target, start_val, args=(dat_ar, atm_ar), method='Nelder-Mead', tol=1e-10)
+            amp_array.append(res.x[0])
+
+        self._data.array = self._data.array - np.outer(np.array(amp_array), atm_data.y.array)
+
+        return self
+
     def _check_dimensions(self):
         if not (len(self._x_axis), len(self._t_axis)) == self._data.shape \
                 and not (len(self._x_axis), len(self._t_axis)) == self._data.shape[::-1]:
