@@ -219,6 +219,55 @@ class TransientSpectrum(AbstractSpectrum):
 
         return self
 
+    @staticmethod
+    def _extend_axis(internal_array: np.ndarray[float], external_array: np.ndarray[float]) -> (list[int], np.ndarray[float]):
+        """
+        Unites two axes-arrays, by shortening the external array by the points, which are closest to the points of the
+        internal array. However, if two points are similarly close to one point in the external array, only this one
+        point is deleted. This allows the resulting data to be interpolated easily to the final data grid.
+
+        :param internal_array:
+        :param external_array:
+        :return: tuple of indices and the resulting axis array.
+        """
+        # Create set to get all idx, which are doubled and closest values that are present, so they can be deleted
+        del external_array[
+            {int(np.abs(external_array - x).argmin()) for x in internal_array}
+        ]
+        new_array = np.sort(
+            np.concatenate(external_array, internal_array)
+        )
+        return [int(np.abs(new_array - x).argmin()) for x in internal_array], new_array
+
+    @inPlaceOp
+    def fill_to(self,
+                x_axis: None or EnergyAxis or WavelengthAxis = None,
+                t_axis: None or TimeAxis = None):
+        if not isinstance(x_axis, EnergyAxis) and not isinstance(x_axis, WavelengthAxis) and x_axis is not None:
+            raise ValueError(f"x_axis must be of type EnergyAxis or WavelengthAxis, not {type(x_axis)}")
+        if not isinstance(t_axis, TimeAxis) and t_axis is not None:
+            raise ValueError(f"t_axis must be of type TimeAxis, not {type(t_axis)}")
+
+        self.orient_data('x')
+
+        if x_axis is None:
+            x_axis = self._x_axis
+        if t_axis is None:
+            t_axis = self._t_axis
+
+        closest_x_idx, x_array = self._extend_axis(self._x_axis.array, x_axis.array.copy())
+        closest_t_idx, t_array = self._extend_axis(self._t_axis.array, t_axis.array.copy())
+
+        new_y = np.zeros((len(x_array), len(t_array)))
+        new_y[:] = np.nan
+
+        new_y[np.meshgrid(closest_x_idx, closest_t_idx)] = self._data.array
+
+        self._x_axis.array = x_array
+        self._t_axis.array = t_array
+        self._data.array = new_y
+
+
     @inPlaceOp
     def interpolate_to(self,
                        x_axis: None or EnergyAxis or WavelengthAxis = None,
