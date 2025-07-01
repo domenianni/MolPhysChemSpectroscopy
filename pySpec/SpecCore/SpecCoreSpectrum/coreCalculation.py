@@ -167,7 +167,10 @@ class Calculation(Spectrum):
 
         file = CalculationParser(path)
 
-        return cls(file.pos, file.int, file.x_unit, file.y_unit, calc_type=file.calc_type, **kwargs)
+        if not 'calc_type' in kwargs:
+            kwargs['calc_type'] = file.calc_type
+
+        return cls(file.pos, file.int, file.x_unit, file.y_unit, **kwargs)
 
     def __init__(self,
                  positions:     np.ndarray,
