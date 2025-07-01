@@ -90,7 +90,7 @@ class Baseline:
 
         return baseline
 
-    def linear_baseline(self, regions: list[float] or None = None):
+    def linear_baseline(self, regions: list[float] or None = None, t_region: list[float] or None = None):
         """
         Computes a linear baseline correction using linear regression.
 
@@ -109,15 +109,25 @@ class Baseline:
 
         if isinstance(self._reference, TransientSpectrum):
             t = references[0].t.array
+            tmod = np.ones_like(t)
+
+            if t_region is not None and len(t_region) == 2:
+                t_region.sort()
+
+                tmod = np.logical_and(
+                    np.where(t > t_region[0], 1, 0),
+                    np.where(t < t_region[1], 1, 0)
+                )
 
             y_bsl = []
             for i, ti in enumerate(t):
                 slope, intercept, _, _, _ = linregress(x, y[:, i])
+
                 y_bsl.append(slope * self._reference.x + intercept)
 
             return TransientSpectrum(self._reference.x,
                                      self._reference.t,
-                                     np.array(y_bsl),
+                                     np.array(y_bsl).T * tmod,
                                      self._reference.x.unit,
                                      self._reference.t.unit,
                                      self._reference.y.unit)
