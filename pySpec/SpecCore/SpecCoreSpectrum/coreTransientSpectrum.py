@@ -87,7 +87,7 @@ class TransientSpectrum(AbstractSpectrum):
     def __and__(self, other):
         return self.extend(other)
 
-    def extend(self, other: AbstractSpectrum):
+    def extend(self, other: 'TransientSpectrum'):
         """
         Extends the data along the time axis.
 
@@ -97,7 +97,7 @@ class TransientSpectrum(AbstractSpectrum):
         if not isinstance(other, TransientSpectrum):
             raise ValueError("Can only concatenate TransientSpectrum with another instance of TransientSpectrum!")
 
-        other.interpolate_to(self.x, None)
+        other = other.interpolate_to(self.x, None, inplace=False)
 
         self.orient_data('x')
         other.orient_data('x')
@@ -122,7 +122,7 @@ class TransientSpectrum(AbstractSpectrum):
         if not isinstance(other, TransientSpectrum):
             raise ValueError("Can only concatenate TransientSpectrum with another instance of TransientSpectrum!")
 
-        other.interpolate_to(None, self.t)
+        other = other.interpolate_to(None, self.t, inplace=False)
 
         self.orient_data('t')
         other.orient_data('t')
@@ -132,7 +132,7 @@ class TransientSpectrum(AbstractSpectrum):
 
         return TransientSpectrum(x, self.t, y, self._x_axis.unit, self._t_axis.unit, self._data.unit)
 
-    def subtract(self, other):
+    def subtract(self, other: 'TransientSpectrum' or Spectrum):
         """
 
         :param other:
@@ -167,7 +167,7 @@ class TransientSpectrum(AbstractSpectrum):
         return self._x_axis
 
     @x.setter
-    def x(self, array):
+    def x(self, array: np.ndarray or WavelengthAxis or EnergyAxis):
         if isinstance(array, np.ndarray):
             self._x_axis.array = array
             return
@@ -182,7 +182,7 @@ class TransientSpectrum(AbstractSpectrum):
         return self._t_axis
 
     @t.setter
-    def t(self, array):
+    def t(self, array: np.ndarray or TimeAxis):
         if isinstance(array, np.ndarray):
             self._t_axis.array = array
             return
