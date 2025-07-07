@@ -18,6 +18,8 @@ This file is part of pySpec
 
 import numpy as np
 from scipy.interpolate import interp2d, LinearNDInterpolator
+from scipy.interpolate import RegularGridInterpolator
+
 from scipy.signal import correlate, correlation_lags
 from copy import deepcopy
 
@@ -29,7 +31,7 @@ class CrossCorrelationAlignment:
     __DEFAULT_PARAMS = {
         'x_range': [0, 10000],  # just magic numbers for now
         't_range': [0, 20],     # just magic numbers for now
-        'supersampling': 4,
+        'supersampling': 8,
         'threshhold': 0.1
     }
 
@@ -58,18 +60,19 @@ class CrossCorrelationAlignment:
     def _prepare_data(self):
         self._target.x = self._target.x.convert_to('wl')
         self._target.sort()
-        self._target.orient_data('x')
 
         self._reference.x = self._reference.x.convert_to('wl')
         self._reference.sort()
-        self._reference.orient_data('x')
 
         tar_small = self._target.truncate_to(x_range=self.__parameter.get('x_range'),
                                              t_range=self.__parameter.get('t_range'),
                                              inplace=False)
+        tar_small.orient_data('x')
+
         ref_small = self._reference.truncate_to(x_range=self.__parameter.get('x_range'),
                                              t_range=self.__parameter.get('t_range'),
                                              inplace=False)
+        ref_small.orient_data('x')
 
         return tar_small, ref_small
 
@@ -83,25 +86,16 @@ class CrossCorrelationAlignment:
     def _cross_correlate(self):
         target_small, reference_small = self._prepare_data()
 
-        target_interpolator = interp2d(target_small.x.array, target_small.t.array, target_small.y.array,
-                                       kind='linear', copy=True, bounds_error=False, fill_value=float('NaN'))
-        reference_interpolator = interp2d(reference_small.x.array, reference_small.t.array, reference_small.y.array,
-                                          kind='linear', copy=True, bounds_error=False, fill_value=float('NaN'))
-
         x_val, x = self._create_cross_correlation_grid(reference_small.x.array)
         t_val, t = self._create_cross_correlation_grid(reference_small.t.array)
 
-        y_target = target_interpolator(x, t, assume_sorted=True)
-        y_reference = reference_interpolator(x, t, assume_sorted=True)
+        target_small.interpolate_to( WavelengthAxis(x, 'wl'), TimeAxis(t, 'ps') )
+        reference_small.interpolate_to( WavelengthAxis(x, 'wl'), TimeAxis(t, 'ps') )
 
-        del (target_interpolator, reference_interpolator)
+        y_corr = correlate(reference_small.y.array, target_small.y.array, method='auto', mode='same')
 
-        index = np.isnan(y_target).any(axis=0) | np.isnan(y_reference).any(axis=0)
-
-        y_corr = correlate(y_reference[:, ~index], y_target[:, ~index], method='fft')
-
-        x_corr = correlation_lags(np.shape(y_reference[:, ~index])[1], np.shape(y_target[:, ~index])[1]) * x_val
-        t_corr = correlation_lags(np.shape(y_reference)[0], np.shape(y_target)[0]) * t_val
+        x_corr = correlation_lags(np.shape(reference_small.y.array)[1], np.shape(target_small.y.array)[1], mode='same') * x_val
+        t_corr = correlation_lags(np.shape(reference_small.y.array)[0], np.shape(target_small.y.array)[0], mode='same') * t_val
 
         return TransientSpectrum(x_corr, t_corr, y_corr,
                                  x_unit=reference_small.x.unit,
@@ -111,11 +105,14 @@ class CrossCorrelationAlignment:
     def _calculate_shift_vector(self):
         offset = np.unravel_index(np.argmax(self._correlation_matrix.y.array), self._correlation_matrix.y.shape)
 
-        s_t = self._check_shift(self._correlation_matrix.t[offset[0]], self._target.t.array)
-        s_x = self._check_shift(self._correlation_matrix.x[offset[1]], self._target.x.array)
+        max_t = int(np.average(np.argmax(self._correlation_matrix.y.array, axis=0), weights=np.max(self._correlation_matrix.y.array, axis=0)))
+        max_x = int(np.average(np.argmax(self._correlation_matrix.y.array, axis=1), weights=np.max(self._correlation_matrix.y.array, axis=1)))
+
+        s_t = self._check_shift(self._correlation_matrix.t[max_t], self._target.t.array) # offset[0]
+        s_x = self._check_shift(self._correlation_matrix.x[max_x], self._target.x.array) # offset[1]
         print(f'Data is shifted by x = {s_x} nm and y = {s_t} time!')
 
-        return {'x': self._correlation_matrix.x[offset[1]], 't': self._correlation_matrix.t[offset[0]]}
+        return {'x': s_x, 't': s_t}
 
     def _check_shift(self, shift, axis):
         if abs(shift / (axis[-1] - axis[0])) > self.__parameter['threshhold']:
