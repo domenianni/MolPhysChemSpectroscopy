@@ -45,6 +45,8 @@ class ImportTimeResolvedBase:
         self._pre_scans: list or None = None
         self._average = None
 
+        self._cc = []
+
     @property
     def pre_scans(self):
         """
@@ -172,6 +174,9 @@ class ImportTimeResolvedBase:
         """
         assert reference_idx <= len(self._data_list)
 
+        unit = self._data_list[0].x.unit
+        self.convert_all_to('wl')
+
         if par:
             workers = cpu_count() - 2
             if workers < 1:
@@ -188,12 +193,11 @@ class ImportTimeResolvedBase:
                 if idx == reference_idx:
                     continue
 
-                cc = cca_ftr.pop(0).result()
+                self._cc.append(cca_ftr.pop(0).result())
 
                 data = self._data_list[idx]
-                data.t = data.t + cc.shift_vector['t']
-                data.x = data.x + cc.shift_vector['x']
-
+                data.t = data.t + self._cc[-1].shift_vector['t']
+                data.x = data.x + self._cc[-1].shift_vector['x']
         else:
             for idx in range(len(self._data_list)):
                 if idx == reference_idx:
@@ -201,9 +205,12 @@ class ImportTimeResolvedBase:
 
                 data = self._data_list[idx]
 
-                cc = cca(data, self._data_list[reference_idx], **kwargs)
-                data.t = data.t + cc.shift_vector['t']
-                data.x = data.x + cc.shift_vector['x']
+                self._cc.append(cca(data, self._data_list[reference_idx], **kwargs))
+
+                data.t = data.t + self._cc[-1].shift_vector['t']
+                data.x = data.x + self._cc[-1].shift_vector['x']
+
+        self.convert_all_to(unit)
 
         return self
 
