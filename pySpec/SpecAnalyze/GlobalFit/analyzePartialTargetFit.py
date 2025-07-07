@@ -84,7 +84,7 @@ class PartialTargetFit(GlobalFit):
                 params: Parameters,
                 model: KineticModel,
                 data: TransientSpectrum):
-        k_parameter = [params[x].value for x in model.parameter if "f" not in x]
+        k_parameter = [1/params[x].value for x in model.parameter if "f" not in x]
         concentrations = self.model.calculate_concentrations(self.data.t.array, k_parameter).T
 
         lineshapes, positive_data = self._calculate_lineshapes(params['A'],
@@ -105,20 +105,27 @@ class PartialTargetFit(GlobalFit):
 
         return lineshapes, positive_data
 
-    def _prepare_parameter(self, init_values):
+    def _prepare_parameter(self, init_values, vary_values):
+        if init_values is None:
+            init_values = [1 for x in self.model.parameter if "f" not in x]
+
+        if vary_values is None:
+            vary_values = [True for x in self.model.parameter if "f" not in x]
+            vary_values.append(True)
+        
         # TODO add check for amount of init values
         if not (len(init_values) == len(self.model.parameter) + 1):
             raise ValueError(f"{len(init_values)} initial parameter have been provided, but {len(self.model.parameter)} are necessary. These are {self.model.parameter}!")
 
-        parameter = self._prepare_k_parameter(init_values[:-1])
-        return self._add_amplitude_param(init_values[-1], parameter)
+        parameter = self._prepare_tau_parameter(init_values[:-1], vary_values[:-1])
+        return self._add_amplitude_param(init_values[-1], parameter, vary_values[-1])
 
     @staticmethod
-    def _add_amplitude_param(init_amp, parameter):
+    def _add_amplitude_param(init_amp, parameter, vary):
         if init_amp is None:
             init_amp = 1
 
-        parameter.add("A", value=init_amp, min=0, expr=None, brute_step=None)
+        parameter.add("A", value=init_amp, min=0, expr=None, brute_step=None, vary=vary)
     
         return parameter
 

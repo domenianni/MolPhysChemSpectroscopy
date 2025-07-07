@@ -54,21 +54,28 @@ class SpectroTemporalTargetFit(GlobalFit):
                 model: KineticModel,
                 data: TransientSpectrum):
 
-        concentrations = model.calculate_concentrations(data.t.array, [params[x] for x in model.parameter]).T
+        concentrations = model.calculate_concentrations(data.t.array, [1/params[x] for x in model.parameter]).T
         lineshapes = params['A'] * self._base_lineshapes
 
         return lineshapes, concentrations
 
-    def _prepare_parameter(self, init_values):
-        parameter = self._prepare_k_parameter(init_values[:-1])
-        return self._add_amplitude_param(init_values[-1], parameter)
+    def _prepare_parameter(self, init_values, vary_values):
+        if init_values is None:
+            init_values = [1 for x in self.model.parameter if "f" not in x]
+
+        if vary_values is None:
+            vary_values = [True for x in self.model.parameter if "f" not in x]
+            vary_values.append(True)
+        
+        parameter = self._prepare_tau_parameter(init_values[:-1], vary_values[:-1])
+        return self._add_amplitude_param(init_values[-1], parameter, vary_values[-1])
 
     @staticmethod
-    def _add_amplitude_param(init_amp, parameter):
+    def _add_amplitude_param(init_amp, parameter, vary):
         if init_amp is None:
             init_amp = 1
     
-        parameter.add("A", value=init_amp, min=0.001, max=100, expr=None, brute_step=None)
+        parameter.add("A", value=init_amp, min=0.001, max=100, expr=None, brute_step=None, vary=vary)
     
         return parameter
 

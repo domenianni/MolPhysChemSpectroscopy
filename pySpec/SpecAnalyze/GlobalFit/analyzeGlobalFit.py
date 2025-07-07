@@ -41,7 +41,9 @@ class GlobalFit:
                   'dual_annealing': {'method': 'dual_annealing'},
                   'slsqp': {'method': 'slsqp'},
                   'powell': {'method': 'powell'},
-                  'bfgs': {'method': 'bfgs'}
+                  'bfgs': {'method': 'bfgs'},
+                  'least_squares': {'method': 'least_squares'},
+                  'lm': {'method': 'leastsq'}
                   }
     
     def __init__(self, data: TransientSpectrum, model: KineticModel):
@@ -78,8 +80,8 @@ class GlobalFit:
         self._parameter = None
         self.result = None
 
-    def fit(self, init_values: list[float] or None = None, optimizer='nelder'):
-        self._parameter = self._prepare_parameter(init_values)
+    def fit(self, init_values: list[float] or None = None, vary_values=None, optimizer='nelder'):
+        self._parameter = self._prepare_parameter(init_values, vary_values)
 
         self.result = minimize(self._target_function,
                                params=self._parameter,
@@ -90,7 +92,7 @@ class GlobalFit:
         return self
 
     def evaluate(self, values: list[float] or None = None):
-        self._parameter = self._prepare_parameter(values)
+        self._parameter = self._prepare_parameter(values, None)
 
         self._target_function(self._parameter)
 
@@ -174,26 +176,29 @@ class GlobalFit:
                 model: KineticModel,
                 data: TransientSpectrum):
 
-        k_parameter = [params[x].value for x in model.parameter if "f" not in x]
+        k_parameter = [1/params[x].value for x in model.parameter if "f" not in x]
         concentrations = model.calculate_concentrations(data.t.array, k_parameter).T
 
         lineshapes, resid, rank, singul_val = lstsq(concentrations, np.matrix(data.y.array))
 
         return lineshapes, concentrations
 
-    def _prepare_parameter(self, init_values):
-        return self._prepare_k_parameter(init_values)
-
-    def _prepare_k_parameter(self, init_values):
+    def _prepare_parameter(self, init_values, vary_values):
         if init_values is None:
             init_values = [1 for x in self.model.parameter if "f" not in x]
 
+        if vary_values is None:
+            vary_values = [1 for x in self.model.parameter if "f" not in x]
+        
+        return self._prepare_tau_parameter(init_values, vary_values)
+
+    def _prepare_tau_parameter(self, init_values, vary_values):
         parameter = Parameters()
-        for p, i_val in zip(self.model.parameter, init_values):
-            parameter.add(p, value=i_val, vary=True, expr=None, brute_step=None, min=0, max=10)
+        for p, i_val, vary in zip(self.model.parameter, init_values, vary_values):
+            parameter.add(p, value=i_val, vary=vary, expr=None, brute_step=None, min=0, max=1e10)
 
             if not "f" in p:
-                parameter.add('tau_'+p, 1/i_val, expr=f'1/{p}', vary=False)
+                parameter.add('k_'+p, 1/i_val, expr=f'1/{p}', vary=False)
 
         return parameter
 
