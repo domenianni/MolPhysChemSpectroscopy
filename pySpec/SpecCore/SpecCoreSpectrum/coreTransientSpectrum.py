@@ -292,11 +292,11 @@ class TransientSpectrum(AbstractSpectrum):
         if t_axis is None:
             t_axis = self._t_axis
 
-        new_array = interpolator((t_axis.array[:, np.newaxis], x_axis.array[np.newaxis,:]))
+        new_array = interpolator((t_axis.array[:, np.newaxis], x_axis.array[np.newaxis, :]))
         self._data.array = new_array
 
-        self._x_axis = x_axis
-        self._t_axis = t_axis
+        self._x_axis = deepcopy(x_axis)
+        self._t_axis = deepcopy(t_axis)
 
         return self
 
