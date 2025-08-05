@@ -7,17 +7,10 @@
 #include <iostream>
 #include <fstream>
 #include <iterator>
-#include <iostream>
 #include <sstream>
 #include <vector>
 #include <filesystem>
-
-struct stitchCorrData{
-    std::vector<double> x;
-    std::vector<double> t;
-    std::vector<double> y;
-};
-
+#include "BaseStitchCorr.h"
 
 class stitchCorrParser{
     std::string m_delimiter{" "};

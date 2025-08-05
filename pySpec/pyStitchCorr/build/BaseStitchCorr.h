@@ -6,8 +6,16 @@
 #define STITCHCORR_H
 
 #include <assert.h>
-#include <nlopt.hpp>
-#include "stitchCorrParser.h"
+#include "nlopt.hpp"
+#include <optional>
+#include <iostream>
+#include <fstream>
+
+struct stitchCorrData{
+    std::vector<double> x;
+    std::vector<double> t;
+    std::vector<double> y;
+};
 
 class BaseStitchCorr {
 public:
