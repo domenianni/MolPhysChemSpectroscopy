@@ -4,10 +4,13 @@ project(pyStitchCorr)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_EXE_LINKER_FLAGS "-static-libgcc -static-libstdc++")
 
-option(PYTHON_LIB "Compile as python lib" ON)
+option(PYTHON_LIB "Compile as python lib" OFF)
+option(LIBRARY "Compile as dll" OFF)
 
 # Uncomment the following line to compile as python package:
-#set(PYTHON_LIB ON)
+set(PYTHON_LIB OFF)
+set(LIBRARY ON)
+set(EXE OFF)
 
 find_package(NLopt CONFIG REQUIRED)
 
@@ -20,13 +23,24 @@ if(PYTHON_LIB)
                         pyStitchCorr.h     pyStitchCorr.cpp
                         BaseStitchCorr.cpp BaseStitchCorr.h)
     target_link_libraries(stitchCorr PRIVATE NLopt::nlopt)
+endif()
 
-else()
+if(EXE)
     add_executable(stitchCorr
                    stitchCorrParser.cpp stitchCorrParser.h
                    inputParser.cpp      inputParser.h
                    BaseStitchCorr.cpp   BaseStitchCorr.h
                    main.cpp)
+    target_link_libraries(stitchCorr PRIVATE NLopt::nlopt)
+endif()
+
+if(LIBRARY)
+    #include_directories("C:/Program Files/MATLAB/R2024a/extern/include")
+
+    add_library(stitchCorr STATIC
+            BaseStitchCorr.cpp   BaseStitchCorr.h
+            #mexStitchCorr.h mexStitchCorr.cpp
+    )
     target_link_libraries(stitchCorr PRIVATE NLopt::nlopt)
 endif()
 
