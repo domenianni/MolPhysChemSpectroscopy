@@ -2,13 +2,13 @@ import numpy as np
 from scipy.signal import convolve
 from copy import deepcopy
 
-from ..coreCalculationParser import CalculationParser
-from ..SpecCoreData import OneDimensionalData
-from ..SpecCoreAxis import EnergyAxis, WavelengthAxis
-from ..SpecCoreSpectrum import Spectrum
-from ..coreLineShapes import gaussian, lorentzian, skewed_gaussian, voigt, pseudo_voigt
-from ..SpecCoreData.coreAbstractData import AbstractData
-from ..coreFunctions import inPlaceOp
+from pySpec.SpecCore.coreCalculationParser import CalculationParser
+from pySpec.SpecCore.SpecCoreData import OneDimensionalData
+from pySpec.SpecCore.SpecCoreAxis import EnergyAxis, WavelengthAxis
+from pySpec.SpecCore.SpecCoreSpectrum import Spectrum
+from pySpec.SpecCore.coreLineShapes import gaussian, lorentzian, skewed_gaussian, voigt, pseudo_voigt, lognormal #, lognormal
+from pySpec.SpecCore.SpecCoreData.coreAbstractData import AbstractData
+from pySpec.SpecCore.coreFunctions import inPlaceOp
 
 
 class Calculation(Spectrum):
@@ -18,13 +18,15 @@ class Calculation(Spectrum):
         'lorentz': lorentzian,
         'skewed-gaussian': skewed_gaussian,
         'voigt': voigt,
+        'lognormal': lognormal
     }
 
     __ENVELOPE = {
         'gaussian': {'fwhm': 10},
         'lorentz': {'fwhm': 10},
         'skewed-gaussian': {'fwhm': 10, 'alpha': 1},
-        'voigt': {'fwhm_gauss': 10, 'fwhm_lorentz': 10}
+        'voigt': {'fwhm_gauss': 10, 'fwhm_lorentz': 10},
+        'lognormal': {'fwhm': 10, 'alpha': 1}
     }
 
     __UVVIS = {
@@ -33,6 +35,20 @@ class Calculation(Spectrum):
         'step' : 0.1,
         'kw': ('uvvis', 'UVVis', 'TDDFT', 'tddft')
         }
+
+    __UVVIS_WN = {
+        'min' : 0,
+        'max' : 100000,
+        'step': 10.0,
+        'kw': ('uvvis', 'UVVis', 'TDDFT', 'tddft')
+    }
+
+    __UVVIS_EV = {
+        'min': 0,
+        'max': 10,
+        'step': 0.001,
+        'kw': ('uvvis', 'UVVis', 'TDDFT', 'tddft')
+    }
 
     __IR = {
         'min': 0,
@@ -120,6 +136,44 @@ class Calculation(Spectrum):
     def subtract(self, other):
         raise NotImplementedError()
 
+    def __mul__(self, other):
+        cp = deepcopy(self)
+        cp._int_axis *= other
+
+        return cp
+
+    def __rmul__(self, other):
+        return self.__mul__(other)
+
+    def __add__(self, other):
+        return self._add(other)
+
+    def _add(self, other):
+        if not (
+                (type(self._pos_axis) == type(other._pos_axis)) and
+                (self._params.get('kw') == other._params.get('kw'))):
+            return ValueError("Calculations not matching in type!")
+
+        new_pos = np.append(self._pos_axis.array, other._pos_axis.array)
+        new_int = np.append(self._int_axis.array, other._int_axis.array)
+
+        idx = np.argsort(new_pos)
+
+        new_pos = new_pos[idx]
+        new_int = new_int[idx]
+
+        if len(set(new_pos)) != len(new_pos):
+            idx = np.where(np.diff(new_pos) == 0)
+
+            new_pos = new_pos[np.diff(new_pos, append=new_pos[-1]+1) != 0]
+
+            for i in idx:
+                new_int[i+1] = new_int[i] + new_int[i+1]
+
+            new_int = np.delete(new_int, idx)
+
+        return Calculation(new_pos, new_int, self._pos_axis.unit, calc_type=self._params.get('kw')[0])
+
     def save(self, path):
         """
         :param path: The path to save at.
@@ -199,7 +253,12 @@ class Calculation(Spectrum):
         if calc_type in self.__IR.get('kw'):
             self._params = self.__IR
         elif calc_type in self.__UVVIS.get('kw'):
-            self._params = self.__UVVIS
+            if pos_unit == 'wn':
+                self._params = self.__UVVIS_WN
+            elif pos_unit == 'ev':
+                self._params = self.__UVVIS_EV
+            else:
+                self._params = self.__UVVIS
         else:
             ValueError(f'calc_type: {calc_type} not recognized!')
 
@@ -216,7 +275,7 @@ class Calculation(Spectrum):
             envelope[np.argmin(np.abs(x - p))] = i
 
         envelope = convolve(envelope, shape, mode='same')
-        envelope = np.max(self._int_axis.array) * envelope / np.max(envelope)
+        #envelope = np.max(self._int_axis.array) * envelope / np.max(envelope)
 
         return envelope
 
@@ -228,23 +287,24 @@ class Calculation(Spectrum):
                             '-    gaussian\n'
                             '-    lorentz\n'
                             '-    pseudo-voigt.\n'
+                            '-    lognormal\n' 
                             'Leaving it empty returns gauss-type function')
 
-        shape = fn(nu=x, s0=1, nu0=0, **self._lineshape_params)
+        nu0 = 0
+        if self.lineshape == 'lognormal':
+            x = x + self._params['max']
+            nu0 = self._params['max']
+
+        shape = fn(nu=x, s0=1, nu0=nu0, **self._lineshape_params)
+
+        if self.lineshape == 'lognormal':
+            shape = shape[::-1]
 
         return shape
 
 
 if __name__ == '__main__':
-    import matplotlib.pyplot as plt
+    name = r"N:\Calc\FcN3\S0\tddft\FcCOOtBuN3_S0.mpi.8.out"
+    calc = Calculation.from_file(name)
 
-    irc = Calculation.from_file("")
-
-    plt.bar(irc.pos, irc.int, 1)
-    irc.shape_params = {'fwhm': 40}
-    plt.plot(irc.x, irc.y)
-
-    plt.xlim(200, 1000)
-    plt.ylim(0.001, 1)
-
-    plt.show()
+    print(calc.pos.array)
