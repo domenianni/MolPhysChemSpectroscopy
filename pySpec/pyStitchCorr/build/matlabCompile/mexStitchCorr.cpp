@@ -15,7 +15,7 @@ void MexFunction::operator()(matlab::mex::ArgumentList outputs, matlab::mex::Arg
     const double xStride{1};
     const double tStride{blockAmount*32.0};
 
-    const bool sortedInput{false};
+    const bool sortedInput{inputs[4][0]};
 
     stitchCorrData data{
         std::vector<double>(mx.begin(), mx.end()),
@@ -47,9 +47,9 @@ void MexFunction::checkArguments(matlab::mex::ArgumentList outputs, matlab::mex:
     // Get array factory
     matlab::data::ArrayFactory factory;
 
-    if (inputs.size() != 4){matlabPtr->feval(u"error",
+    if (inputs.size() != 5){matlabPtr->feval(u"error",
         0,
-        std::vector<matlab::data::Array>({ factory.createScalar("Input must be x, t, y and the block amount.") }));
+        std::vector<matlab::data::Array>({ factory.createScalar("Input must be x, t, y,the block amount and whether the array is sorted.") }));
     }
 
     for (int i{0}; i < 3; i++){
