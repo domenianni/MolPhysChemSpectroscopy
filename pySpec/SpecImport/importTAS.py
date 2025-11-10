@@ -9,10 +9,10 @@ import json
 
 import matplotlib.pyplot as plt
 
-from ..SpecCore.coreParser import Parser
-from .importBase import ImportTimeResolvedBase
-from ..SpecCore.SpecCoreSpectrum import TransientSpectrum
-from ..SpecCore.SpecCoreSpectrum import Transient
+from pySpec.SpecCore.coreParser import Parser
+from pySpec.SpecImport.importBase import ImportTimeResolvedBase
+from pySpec.SpecCore.SpecCoreSpectrum import TransientSpectrum
+from pySpec.SpecCore.SpecCoreSpectrum import Transient
 
 
 class ImportTas(ImportTimeResolvedBase):
@@ -191,6 +191,81 @@ class ImportTas(ImportTimeResolvedBase):
 
         return data
 
+    @classmethod
+    def from_legacy(cls, path):
+        files = Parser.parse_path(path)
+
+        data_list = []
+
+        for file in files:
+            with open(file, 'r') as f:
+                lines = f.readlines()
+
+            idx_x = lines.index("[Wavelengths(nm)]\n") + 1
+            x = lines[idx_x].split(",")
+
+            xarray = []
+            for xi in x:
+                try:
+                    xarray.append(float(xi))
+                except ValueError:
+                    continue
+
+            idx_ty = lines.index('[IntensityData]\n')+1
+            ty = lines[idx_ty:]
+
+            tarray = []
+            yarray = []
+            for tyi in ty:
+                tyi = tyi.split(',')
+                try:
+                    tarray.append(float(tyi[1]))
+
+                    yiarray = []
+                    for yi in tyi[4:]:
+                        yiarray.append(float(yi))
+                    yarray.append(yiarray)
+
+                except ValueError:
+                    continue
+
+                except IndexError:
+                    continue
+
+            data_list.append(
+                TransientSpectrum(
+                    np.array(xarray),
+                    np.array(tarray),
+                    np.array(yarray),
+                    'wl',
+                    'ps',
+                    'dod')
+                )
+
+            for d in data_list:
+                d.y = np.nan_to_num(d.y.array)
+
+        return cls(data_list)
+
 
 if __name__ == '__main__':
-    pass
+    from matplotlib.colors import TwoSlopeNorm
+
+    path = r"S:\Stuttgart_colab\Project Ferrocene\TAS\Fc(N3)(COOtBu)_LD143_266_*"
+
+    path += r"/Fc(N3)(COOtBu)_LD143_266_*.csv"
+
+    i = ImportTas.from_legacy(glob.glob(path)[:-1])
+    i.cross_correlate(x_range=[400, 600], t_range=[-1, 1], par=False)
+    i.subtract_prescans(-1)
+
+    ave = i.average
+    ave = i.correct_dispersion(ave, x_range=[400, 600], t_range=[-0.5, 0.5], visualize=True)
+
+    ave.save(r"C:\Users\bauer\Desktop\garbage.dat")
+
+    plt.pcolormesh(ave.t, ave.x, ave.y, norm=TwoSlopeNorm(0, -0.05, 0.05))
+    plt.xscale('symlog')
+    plt.show()
+
+
