@@ -164,8 +164,8 @@ class Parser:
         else:
             raise ValueError("import_type must be of: spectrum, transient, x_first or t_first.")
 
-    @staticmethod
-    def _two_dimensional_data(string_data):
+    def _two_dimensional_data(self, string_data):
+        # TODO: does not work, if other separator is used in dataset than empty space... Using self._sep does not work
         success = False
         first_axis = []
         while not success:
