@@ -1,0 +1,26 @@
+[project]
+version = "0.4"
+name = "pySpec"
+description = "A time-resolved-spectroscopy package."
+readme = "README.md"
+authors = [
+  { name = "Markus Bauer", email = "mbauer1@uni-bonn.de" },
+]
+maintainers = [
+  { name = "Markus Bauer", email = "mbauer1@uni-bonn.de" },
+]
+requires-python = ">=3.11"
+
+dependencies = ["numpy", "scipy", "matplotlib", "lmfit", "scikit-build", "sympy"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Scientific/Engineering :: Physics",
+]
+
+[project.urls]
+Homepage = "https://github.com/domenianni/MolPhysChemSpectroscopy"
