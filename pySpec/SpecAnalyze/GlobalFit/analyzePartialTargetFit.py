@@ -37,6 +37,14 @@ class PartialTargetFit(GlobalFit):
 
     @property
     def parent(self):
+        """
+        Get the static parent spectrum used in the fit.
+
+        :return: The parent spectrum.
+        :rtype: Spectrum
+        :raises ValueError: If the assigned value is not a Spectrum instance.
+        """
+
         return self._parent
 
     @parent.setter
@@ -51,6 +59,13 @@ class PartialTargetFit(GlobalFit):
 
     @property
     def positive_data(self):
+        """
+        Positive portion of the fitted data residuals.
+
+        :return: The positive data array.
+        :rtype: numpy.ndarray
+        """
+
         return self._positive_data
 
     @property
@@ -62,6 +77,20 @@ class PartialTargetFit(GlobalFit):
             return None
 
     def __init__(self, data: TransientSpectrum or ProductSpectrum, model):
+        """
+        This class implements a global fitting routine including a partial target contribution
+        (static parent spectrum) scaled by an amplitude parameter 'A' and added to the kinetic components.
+
+        :param data: Experimental data to fit, either TransientSpectrum or ProductSpectrum.
+        :type data: TransientSpectrum or ProductSpectrum
+        :param model: Kinetic model describing species interconversion.
+        :type model: KineticModel
+
+        :ivar parent: The static parent spectrum used as an additive component in the fit.
+        :vartype parent: Spectrum
+        :ivar positive_data: The positive portion of the fitted data residuals.
+        :vartype positive_data: numpy.ndarray
+        """
         self._parent: Spectrum or None = None
 
         if isinstance(data, ProductSpectrum):
@@ -171,7 +200,7 @@ if __name__ == '__main__':
     f.parent = pconv
     f.t0 = 1
 
-    init_vals = [1/val for val in [3.5, 13, 36, 4600, 10000]]
+    init_vals = [3.5, 13, 36, 4600, 10000]
     init_vals.append(11)
 
     f.fit(init_vals, 'powell')
