@@ -1,17 +1,29 @@
 import numpy as np
 import re
 from pathlib import Path
+import csv
 
 
 class CalculationParser:
 
-    __UVVIS = {
+    __UVVIS_Orca5 = {
         'type': 'uvvis',
         'upper_border': "ABSORPTION SPECTRUM VIA TRANSITION ELECTRIC DIPOLE MOMENTS",
         'lower_border': "ABSORPTION SPECTRUM VIA TRANSITION VELOCITY DIPOLE MOMENTS",
         'value_format': r"^\s+[0-9]+\s+[0-9]+.[0-9]+\s+[0-9]+.[0-9]+\s+[0-9]+.[0-9]+\s+",
         'pos_1': 2,
         'pos_2': 3,
+        'x_unit': 'ev',
+        'y_unit': 'f_osc'
+    }
+
+    __UVVIS_Orca6 = {
+        'type': 'uvvis',
+        'upper_border': "ABSORPTION SPECTRUM VIA TRANSITION ELECTRIC DIPOLE MOMENTS",
+        'lower_border': "ABSORPTION SPECTRUM VIA TRANSITION VELOCITY DIPOLE MOMENTS",
+        'value_format': r"\s+[0-9]+-[0-9]+[A-Z]",
+        'pos_1': 3,
+        'pos_2': 6,
         'x_unit': 'ev',
         'y_unit': 'f_osc'
     }
@@ -25,6 +37,11 @@ class CalculationParser:
         'pos_2': 2,
         'x_unit': 'wn',
         'y_unit': 'f_osc'
+    }
+
+    __CSV = {
+        'pos_1': 1,
+        'pos_2': 3
     }
 
     __TM_IR = {
@@ -74,16 +91,44 @@ class CalculationParser:
     def _import_file(self):
         if re.search('ORCA', open(self._file, 'r').read()):
             if re.search('ORCA-CIS/TD-DFT FINISHED WITHOUT ERROR', open(self._file, 'r').read()):
-                self._params = self.__UVVIS
+                if re.search('Program Version 6.0.1', open(self._file, 'r').read()):
+                    self._params = self.__UVVIS_Orca6
+                else:
+                    self._params = self.__UVVIS_Orca5
             else:
                 self._params = self.__IR
             pos, ins = self._read_file_orca()
+
+            return pos, ins
+
+        if self._file.suffix in ('.csv', '.CSV'):
+            pos, ins = self._read_file_csv()
+
+            return pos, ins
+
+        if re.search('# Excitation spectrum', open(self._file, 'r').read()):
+            self._params = self.__TM_UV
         else:
-            if re.search('# Excitation spectrum', open(self._file, 'r').read()):
-                self._params = self.__TM_UV
-            else:
-                self._params = self.__TM_IR
-            pos, ins = self._read_file_tm()
+            self._params = self.__TM_IR
+
+        pos, ins = self._read_file_tm()
+
+        return pos, ins
+
+    def _read_file_csv(self):
+        pos = []
+        ins = []
+
+        with open(self._file, "r") as file:
+            r = csv.reader(file, delimiter=',')
+
+            i = 0
+            for row in r:
+                if i < 2:
+                    i += 1
+                    continue
+                pos.append(float(row[self.__CSV['pos_1']]))
+                ins.append(float(row[self.__CSV['pos_2']]))
 
         return pos, ins
 
