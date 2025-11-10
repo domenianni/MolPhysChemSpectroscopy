@@ -11,7 +11,7 @@ class StitchCorrection:
                      # nan_col_no: list or None = None,
                      stitch_diagnostics: bool = False,
                      asymmetric_stitch: bool = True,
-                     method: str = 'SLSQP'):
+                     method: str = 'SLSQP') -> np.ndarray:
         """
         :Notes:
         To treat the systematic error of varying offsets between stitching blocks within timesteps by minimizing the
