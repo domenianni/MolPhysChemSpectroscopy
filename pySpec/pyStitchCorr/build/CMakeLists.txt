@@ -8,9 +8,11 @@ option(PYTHON_LIB "Compile as python lib" OFF)
 option(LIBRARY "Compile as dll" OFF)
 
 # Uncomment the following line to compile as python package:
-set(PYTHON_LIB OFF)
-set(LIBRARY ON)
+set(PYTHON_LIB ON)
+set(LIBRARY OFF)
 set(EXE OFF)
+
+include_directories(pySpec/pyStitchCorr/build)
 
 find_package(NLopt CONFIG REQUIRED)
 
@@ -20,17 +22,18 @@ if(PYTHON_LIB)
     find_package(pybind11 CONFIG REQUIRED)
     set(PYBIND11_PYTHON_VERSION 3.11)
     pybind11_add_module(stitchCorr
-                        pyStitchCorr.h     pyStitchCorr.cpp
-                        BaseStitchCorr.cpp BaseStitchCorr.h)
+            pySpec/pyStitchCorr/build/pyStitchCorr.h     pySpec/pyStitchCorr/build/pyStitchCorr.cpp
+            pySpec/pyStitchCorr/build/BaseStitchCorr.cpp pySpec/pyStitchCorr/build/BaseStitchCorr.h)
+
     target_link_libraries(stitchCorr PRIVATE NLopt::nlopt)
 endif()
 
 if(EXE)
     add_executable(stitchCorr
-                   stitchCorrParser.cpp stitchCorrParser.h
-                   inputParser.cpp      inputParser.h
-                   BaseStitchCorr.cpp   BaseStitchCorr.h
-                   main.cpp)
+                   pySpec/pyStitchCorr/build/stitchCorrParser.cpp pySpec/pyStitchCorr/build/stitchCorrParser.h
+                   pySpec/pyStitchCorr/build/inputParser.cpp      pySpec/pyStitchCorr/build/inputParser.h
+                   pySpec/pyStitchCorr/build/BaseStitchCorr.cpp   pySpec/pyStitchCorr/build/BaseStitchCorr.h
+                   pySpec/pyStitchCorr/build/main.cpp)
     target_link_libraries(stitchCorr PRIVATE NLopt::nlopt)
 endif()
 
