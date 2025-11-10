@@ -3,8 +3,6 @@ import scipy.integrate
 from sympy import Matrix, dsolve, symbols, Function, lambdify, Eq, sympify, ImmutableMatrix, exp, zeros
 from copy import copy
 
-import timeit
-
 """
 This file is part of pySpec
     Copyright (C) 2024  Markus Bauer
@@ -25,6 +23,39 @@ This file is part of pySpec
 
 
 class KineticModel:
+    """
+    This class serves to calculate kinetic models based on an input k-matrix representing the flow of chemical reactions.
+    For example, the kinetic Matrix for Enzyme Kinetics à
+    [S] + [E] <-> [ES] -> [P] + [E],
+    which is written as::
+
+        matrix = (
+            "[[-k0 * f1(t),           0,     +k1, 0],"  # [S]
+            " [          0, -k0 * f0(t), +k1 +k2, 0],"  # [E]
+            " [ k0 * f1(t),           0, -k1 -k2, 0],"  # [ES]
+            " [ 0,                    0,     +k2, 0]]"  # [P]
+        )
+
+    is used together with starting concentrations to prepare a set of anonymous functions. These, when populated with
+    explicit k-values and a temporal profile, will calculate the concentrations for each provided timestep for each
+    species using the method `func`:: calculate_concentrations, eg::
+
+        start_conc = (1, 1, 0, 0)
+        model = KineticModel(matrix, (1, 1, 0, 0))
+        t = np.arange(1, 100)
+        k = [1/10, 1/10, 1/100]
+
+        c = model.calculate_concentrations(t, k)
+
+    This class must be used for all global fitting routines and the SpecSynthesizer.
+
+    Solving the kinetic differential equations symbolically can take a long time (the property _inversion_method has a
+    large influence on this, which is why GE, QR, DM and DMNC are marked as excluded) or no analytical solution may
+    exist, therefore purely numerical solutions can also be generated using the flag solve_symbol=False. This speeds up
+    the initial model generation drastically, but it slows down evaluation at later points.
+    """
+
+
     _solver = 'LSODA'  # 'RK45'
     _inversion_method = 'ADJ' # 'ADJ', 'LDL', 'LU', EXCLUDED: GE, QR, DM, DMNC
 
