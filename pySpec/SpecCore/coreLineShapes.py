@@ -37,6 +37,22 @@ def gaussian(nu, s0, nu0, fwhm):
 def skewed_gaussian(nu, s0, nu0, fwhm, alpha):
     return gaussian(nu, s0, nu0, fwhm) / 2 * ( 1 + erf(- alpha * ((nu-nu0)/sigma(fwhm))))
 
+def lognormal(nu, s0, nu0, fwhm, alpha):
+    # Siano / Metzler, J.Chem.Phys. 51, 1856(1969),
+    # dx.doi.org/10.1063/1.1672270
+
+    a = nu0 - fwhm * (alpha / (alpha**2 - 1))
+    c = np.log(alpha) / np.sqrt(2*np.log(2))
+    b = np.exp(c**2) * fwhm * (alpha / (alpha**2 - 1))
+
+    e0 = 1 / (fwhm * np.sqrt(2 * np.pi) * (alpha / (alpha**2 - 1)) * c * np.exp((c**2)/2))
+
+    res = np.zeros_like(nu)
+
+    res[nu > a] = s0 * (e0 * b)/(nu[nu > a] - a) * np.exp(-c**2) * np.exp(-1/(2*c**2) * (np.log(((nu[nu > a] - a)/ b)))**2)
+
+    return res
+
 
 def lorentzian(nu, s0, nu0, fwhm):
     # Adapted from >> https://mathworld.wolfram.com/LorentzianFunction.html << 28.09.2023
