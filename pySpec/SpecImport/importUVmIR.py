@@ -22,8 +22,6 @@ from pySpec.SpecCore.SpecCoreSpectrum.coreTransientSpectrum import TransientSpec
 from pySpec.SpecCore.SpecCoreSpectrum.coreSpectrum import Spectrum
 from pySpec.SpecCore.coreParser import Parser
 
-from pySpec.pyStitchCorr import stitchCorr
-
 import os
 import numpy as np
 from copy import deepcopy
@@ -61,6 +59,11 @@ class ImportUVmIR(ImportTimeResolvedBase):
         :param is_linear: Whether to apply linear stitching correction (default is False). If True, no sorting will be applied.
         :returns: The current ImportUVmIR object with corrected stitching.
         """
+
+        try:
+            from pySpec.pyStitchCorr import stitchCorr
+        except ImportError:
+            raise ImportError('stitch correction requires pyStitchCorr to be compiled.')
 
         # For some weird reason, the linear stitching correction does not work when the stitching blocks have been
         # sorted...
