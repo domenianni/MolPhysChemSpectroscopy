@@ -214,8 +214,8 @@ class Parser:
             except ValueError:
                 for line in string_data:
                     line = line.lstrip()
-                    first_axis.append(float(re.split('\s\s*', line)[0]))
-                    data.append(float(re.split('\s\s*', line)[1]))
+                    first_axis.append(float(re.split('\s+', line)[0]))
+                    data.append(float(re.split('\s+', line)[1]))
         else:
             first_axis = [float(x) for x in string_data[0].split()]
             data = [float(x) for x in string_data[1].split()]
