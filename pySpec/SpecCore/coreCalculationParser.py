@@ -6,27 +6,27 @@ import csv
 
 class CalculationParser:
 
-    __UVVIS_Orca5 = {
-        'type': 'uvvis',
-        'upper_border': "ABSORPTION SPECTRUM VIA TRANSITION ELECTRIC DIPOLE MOMENTS",
-        'lower_border': "ABSORPTION SPECTRUM VIA TRANSITION VELOCITY DIPOLE MOMENTS",
-        'value_format': r"^\s+[0-9]+\s+[0-9]+.[0-9]+\s+[0-9]+.[0-9]+\s+[0-9]+.[0-9]+\s+",
-        'pos_1': 2,
-        'pos_2': 3,
-        'x_unit': 'ev',
-        'y_unit': 'f_osc'
-    }
-
-    __UVVIS_Orca6 = {
-        'type': 'uvvis',
-        'upper_border': "ABSORPTION SPECTRUM VIA TRANSITION ELECTRIC DIPOLE MOMENTS",
-        'lower_border': "ABSORPTION SPECTRUM VIA TRANSITION VELOCITY DIPOLE MOMENTS",
-        'value_format': r"\s+[0-9]+-[0-9]+[A-Z]",
-        'pos_1': 3,
-        'pos_2': 6,
-        'x_unit': 'ev',
-        'y_unit': 'f_osc'
-    }
+    # __UVVIS_Orca5 = {
+    #     'type': 'uvvis',
+    #     'upper_border': "ABSORPTION SPECTRUM VIA TRANSITION ELECTRIC DIPOLE MOMENTS",
+    #     'lower_border': "ABSORPTION SPECTRUM VIA TRANSITION VELOCITY DIPOLE MOMENTS",
+    #     'value_format': r"^\s+[0-9]+\s+[0-9]+.[0-9]+\s+[0-9]+.[0-9]+\s+[0-9]+.[0-9]+\s+",
+    #     'pos_1': 1,
+    #     'pos_2': 3,
+    #     'x_unit': 'wn',
+    #     'y_unit': 'f_osc'
+    # }
+    #
+    # __UVVIS_Orca6 = {
+    #     'type': 'uvvis',
+    #     'upper_border': "ABSORPTION SPECTRUM VIA TRANSITION ELECTRIC DIPOLE MOMENTS",
+    #     'lower_border': "ABSORPTION SPECTRUM VIA TRANSITION VELOCITY DIPOLE MOMENTS",
+    #     'value_format': r"\s+[0-9]+-[0-9]+[A-Z]",
+    #     'pos_1': 3,
+    #     'pos_2': 6,
+    #     'x_unit': 'ev',
+    #     'y_unit': 'f_osc'
+    # }
 
     __IR = {
         'type': 'ir',
@@ -89,17 +89,17 @@ class CalculationParser:
         self._pos, self._int = self._import_file()
 
     def _import_file(self):
-        if re.search('ORCA', open(self._file, 'r').read()):
-            if re.search('ORCA-CIS/TD-DFT FINISHED WITHOUT ERROR', open(self._file, 'r').read()):
-                if re.search('Program Version 6.0.1', open(self._file, 'r').read()):
-                    self._params = self.__UVVIS_Orca6
-                else:
-                    self._params = self.__UVVIS_Orca5
-            else:
-                self._params = self.__IR
-            pos, ins = self._read_file_orca()
-
-            return pos, ins
+        # if re.search('ORCA', open(self._file, 'r').read()):
+        #     if re.search('ORCA-CIS/TD-DFT FINISHED WITHOUT ERROR', open(self._file, 'r').read()):
+        #         if re.search('Program Version 6.0.1', open(self._file, 'r').read()):
+        #             self._params = self.__UVVIS_Orca6
+        #         else:
+        #             self._params = self.__UVVIS_Orca5
+        #     else:
+        #         self._params = self.__IR
+        #     pos, ins = self._read_file_orca()
+        #
+        #     return pos, ins
 
         if self._file.suffix in ('.csv', '.CSV'):
             pos, ins = self._read_file_csv()
@@ -146,31 +146,31 @@ class CalculationParser:
 
         return np.array(pos), np.array(ins)
 
-    def _read_file_orca(self):
-        i = 0
-        with open(self._file) as fh:
-            for Search in fh:
-                i += 1
-                if re.search(self._params['upper_border'], Search):
-                    upperBound = i - 1
-        # search for lower bound in text file
-        i = 0
-        with open(self._file) as fh:
-            for Search in fh:
-                i += 1
-                if re.search(self._params['lower_border'], Search):
-                    lowerBound = i - 1
-        # cut out relevant section from data file
-        fg = open(self._file).readlines()
-        fg = fg[upperBound:lowerBound]
-        # extract relevant data points
-
-        pos = []
-        ins = []
-        for line in fg:
-            if re.search(self._params['value_format'], line):
-                line = line.split()
-                pos.append(float(line[self._params['pos_1']]))
-                ins.append(float(line[self._params['pos_2']]))
-
-        return np.array(pos), np.array(ins)
+    # def _read_file_orca(self):
+    #     i = 0
+    #     with open(self._file) as fh:
+    #         for Search in fh:
+    #             i += 1
+    #             if re.search(self._params['upper_border'], Search):
+    #                 upperBound = i - 1
+    #     # search for lower bound in text file
+    #     i = 0
+    #     with open(self._file) as fh:
+    #         for Search in fh:
+    #             i += 1
+    #             if re.search(self._params['lower_border'], Search):
+    #                 lowerBound = i - 1
+    #     # cut out relevant section from data file
+    #     fg = open(self._file).readlines()
+    #     fg = fg[upperBound:lowerBound]
+    #     # extract relevant data points
+    #
+    #     pos = []
+    #     ins = []
+    #     for line in fg:
+    #         if re.search(self._params['value_format'], line):
+    #             line = line.split()
+    #             pos.append(float(line[self._params['pos_1']]))
+    #             ins.append(float(line[self._params['pos_2']]))
+    #
+    #     return np.array(pos), np.array(ins)
